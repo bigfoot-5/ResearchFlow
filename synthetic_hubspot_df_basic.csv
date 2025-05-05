@@ -1,0 +1,2001 @@
+,Deal,Deal_status
+0,Winner_deal,deal_won
+1,Winner_deal,deal_won
+2,Winner_deal,deal_won
+3,Winner_deal,deal_won
+4,Winner_deal,deal_won
+5,Winner_deal,deal_won
+6,Winner_deal,deal_won
+7,Winner_deal,deal_won
+8,Winner_deal,deal_won
+9,Winner_deal,deal_won
+10,Winner_deal,deal_won
+11,Winner_deal,deal_won
+12,Winner_deal,deal_won
+13,Winner_deal,deal_won
+14,Winner_deal,deal_won
+15,Winner_deal,deal_won
+16,Winner_deal,deal_won
+17,Winner_deal,deal_won
+18,Winner_deal,deal_won
+19,Winner_deal,deal_won
+20,Winner_deal,deal_won
+21,Winner_deal,deal_won
+22,Winner_deal,deal_won
+23,Winner_deal,deal_won
+24,Winner_deal,deal_won
+25,Winner_deal,deal_won
+26,Winner_deal,deal_won
+27,Winner_deal,deal_won
+28,Winner_deal,deal_won
+29,Winner_deal,deal_won
+30,Winner_deal,deal_won
+31,Winner_deal,deal_won
+32,Winner_deal,deal_won
+33,Winner_deal,deal_won
+34,Winner_deal,deal_won
+35,Winner_deal,deal_won
+36,Winner_deal,deal_won
+37,Winner_deal,deal_won
+38,Winner_deal,deal_won
+39,Winner_deal,deal_won
+40,Winner_deal,deal_won
+41,Winner_deal,deal_won
+42,Winner_deal,deal_won
+43,Winner_deal,deal_won
+44,Winner_deal,deal_won
+45,Winner_deal,deal_won
+46,Winner_deal,deal_won
+47,Winner_deal,deal_won
+48,Winner_deal,deal_won
+49,Winner_deal,deal_won
+50,Winner_deal,deal_won
+51,Winner_deal,deal_won
+52,Winner_deal,deal_won
+53,Winner_deal,deal_won
+54,Winner_deal,deal_won
+55,Winner_deal,deal_won
+56,Winner_deal,deal_won
+57,Winner_deal,deal_won
+58,Winner_deal,deal_won
+59,Winner_deal,deal_won
+60,Winner_deal,deal_won
+61,Winner_deal,deal_won
+62,Winner_deal,deal_won
+63,Winner_deal,deal_won
+64,Winner_deal,deal_won
+65,Winner_deal,deal_won
+66,Winner_deal,deal_won
+67,Winner_deal,deal_won
+68,Winner_deal,deal_won
+69,Winner_deal,deal_won
+70,Winner_deal,deal_won
+71,Winner_deal,deal_won
+72,Winner_deal,deal_won
+73,Winner_deal,deal_won
+74,Winner_deal,deal_won
+75,Winner_deal,deal_won
+76,Winner_deal,deal_won
+77,Winner_deal,deal_won
+78,Winner_deal,deal_won
+79,Winner_deal,deal_won
+80,Winner_deal,deal_won
+81,Winner_deal,deal_won
+82,Winner_deal,deal_won
+83,Winner_deal,deal_won
+84,Winner_deal,deal_won
+85,Winner_deal,deal_won
+86,Winner_deal,deal_won
+87,Winner_deal,deal_won
+88,Winner_deal,deal_won
+89,Winner_deal,deal_won
+90,Winner_deal,deal_won
+91,Winner_deal,deal_won
+92,Winner_deal,deal_won
+93,Winner_deal,deal_won
+94,Winner_deal,deal_won
+95,Winner_deal,deal_won
+96,Winner_deal,deal_won
+97,Winner_deal,deal_won
+98,Winner_deal,deal_won
+99,Winner_deal,deal_won
+100,Winner_deal,deal_won
+101,Winner_deal,deal_won
+102,Winner_deal,deal_won
+103,Winner_deal,deal_won
+104,Winner_deal,deal_won
+105,Winner_deal,deal_won
+106,Winner_deal,deal_won
+107,Winner_deal,deal_won
+108,Winner_deal,deal_won
+109,Winner_deal,deal_won
+110,Winner_deal,deal_won
+111,Winner_deal,deal_won
+112,Winner_deal,deal_won
+113,Winner_deal,deal_won
+114,Winner_deal,deal_won
+115,Winner_deal,deal_won
+116,Winner_deal,deal_won
+117,Winner_deal,deal_won
+118,Winner_deal,deal_won
+119,Winner_deal,deal_won
+120,Winner_deal,deal_won
+121,Winner_deal,deal_won
+122,Winner_deal,deal_won
+123,Winner_deal,deal_won
+124,Winner_deal,deal_won
+125,Winner_deal,deal_won
+126,Winner_deal,deal_won
+127,Winner_deal,deal_won
+128,Winner_deal,deal_won
+129,Winner_deal,deal_won
+130,Winner_deal,deal_won
+131,Winner_deal,deal_won
+132,Winner_deal,deal_won
+133,Winner_deal,deal_won
+134,Winner_deal,deal_won
+135,Winner_deal,deal_won
+136,Winner_deal,deal_won
+137,Winner_deal,deal_won
+138,Winner_deal,deal_won
+139,Winner_deal,deal_won
+140,Winner_deal,deal_won
+141,Winner_deal,deal_won
+142,Winner_deal,deal_won
+143,Winner_deal,deal_won
+144,Winner_deal,deal_won
+145,Winner_deal,deal_won
+146,Winner_deal,deal_won
+147,Winner_deal,deal_won
+148,Winner_deal,deal_won
+149,Winner_deal,deal_won
+150,Winner_deal,deal_won
+151,Winner_deal,deal_won
+152,Winner_deal,deal_won
+153,Winner_deal,deal_won
+154,Winner_deal,deal_won
+155,Winner_deal,deal_won
+156,Winner_deal,deal_won
+157,Winner_deal,deal_won
+158,Winner_deal,deal_won
+159,Winner_deal,deal_won
+160,Winner_deal,deal_won
+161,Winner_deal,deal_won
+162,Winner_deal,deal_won
+163,Winner_deal,deal_won
+164,Winner_deal,deal_won
+165,Winner_deal,deal_won
+166,Winner_deal,deal_won
+167,Winner_deal,deal_won
+168,Winner_deal,deal_won
+169,Winner_deal,deal_won
+170,Winner_deal,deal_won
+171,Winner_deal,deal_won
+172,Winner_deal,deal_won
+173,Winner_deal,deal_won
+174,Winner_deal,deal_won
+175,Winner_deal,deal_won
+176,Winner_deal,deal_won
+177,Winner_deal,deal_won
+178,Winner_deal,deal_won
+179,Winner_deal,deal_won
+180,Winner_deal,deal_won
+181,Winner_deal,deal_won
+182,Winner_deal,deal_won
+183,Winner_deal,deal_won
+184,Winner_deal,deal_won
+185,Winner_deal,deal_won
+186,Winner_deal,deal_won
+187,Winner_deal,deal_won
+188,Winner_deal,deal_won
+189,Winner_deal,deal_won
+190,Winner_deal,deal_won
+191,Winner_deal,deal_won
+192,Winner_deal,deal_won
+193,Winner_deal,deal_won
+194,Winner_deal,deal_won
+195,Winner_deal,deal_won
+196,Winner_deal,deal_won
+197,Winner_deal,deal_won
+198,Winner_deal,deal_won
+199,Winner_deal,deal_won
+200,Winner_deal,deal_won
+201,Winner_deal,deal_won
+202,Winner_deal,deal_won
+203,Winner_deal,deal_won
+204,Winner_deal,deal_won
+205,Winner_deal,deal_won
+206,Winner_deal,deal_won
+207,Winner_deal,deal_won
+208,Winner_deal,deal_won
+209,Winner_deal,deal_won
+210,Winner_deal,deal_won
+211,Winner_deal,deal_won
+212,Winner_deal,deal_won
+213,Winner_deal,deal_won
+214,Winner_deal,deal_won
+215,Winner_deal,deal_won
+216,Winner_deal,deal_won
+217,Winner_deal,deal_won
+218,Winner_deal,deal_won
+219,Winner_deal,deal_won
+220,Winner_deal,deal_won
+221,Winner_deal,deal_won
+222,Winner_deal,deal_won
+223,Winner_deal,deal_won
+224,Winner_deal,deal_won
+225,Winner_deal,deal_won
+226,Winner_deal,deal_won
+227,Winner_deal,deal_won
+228,Winner_deal,deal_won
+229,Winner_deal,deal_won
+230,Winner_deal,deal_won
+231,Winner_deal,deal_won
+232,Winner_deal,deal_won
+233,Winner_deal,deal_won
+234,Winner_deal,deal_won
+235,Winner_deal,deal_won
+236,Winner_deal,deal_won
+237,Winner_deal,deal_won
+238,Winner_deal,deal_won
+239,Winner_deal,deal_won
+240,Winner_deal,deal_won
+241,Winner_deal,deal_won
+242,Winner_deal,deal_won
+243,Winner_deal,deal_won
+244,Winner_deal,deal_won
+245,Winner_deal,deal_won
+246,Winner_deal,deal_won
+247,Winner_deal,deal_won
+248,Winner_deal,deal_won
+249,Winner_deal,deal_won
+250,Winner_deal,deal_won
+251,Winner_deal,deal_won
+252,Winner_deal,deal_won
+253,Winner_deal,deal_won
+254,Winner_deal,deal_won
+255,Winner_deal,deal_won
+256,Winner_deal,deal_won
+257,Winner_deal,deal_won
+258,Winner_deal,deal_won
+259,Winner_deal,deal_won
+260,Winner_deal,deal_won
+261,Winner_deal,deal_won
+262,Winner_deal,deal_won
+263,Winner_deal,deal_won
+264,Winner_deal,deal_won
+265,Winner_deal,deal_won
+266,Winner_deal,deal_won
+267,Winner_deal,deal_won
+268,Winner_deal,deal_won
+269,Winner_deal,deal_won
+270,Winner_deal,deal_won
+271,Winner_deal,deal_won
+272,Winner_deal,deal_won
+273,Winner_deal,deal_won
+274,Winner_deal,deal_won
+275,Winner_deal,deal_won
+276,Winner_deal,deal_won
+277,Winner_deal,deal_won
+278,Winner_deal,deal_won
+279,Winner_deal,deal_won
+280,Winner_deal,deal_won
+281,Winner_deal,deal_won
+282,Winner_deal,deal_won
+283,Winner_deal,deal_won
+284,Winner_deal,deal_won
+285,Winner_deal,deal_won
+286,Winner_deal,deal_won
+287,Winner_deal,deal_won
+288,Winner_deal,deal_won
+289,Winner_deal,deal_won
+290,Winner_deal,deal_won
+291,Winner_deal,deal_won
+292,Winner_deal,deal_won
+293,Winner_deal,deal_won
+294,Winner_deal,deal_won
+295,Winner_deal,deal_won
+296,Winner_deal,deal_won
+297,Winner_deal,deal_won
+298,Winner_deal,deal_won
+299,Winner_deal,deal_won
+300,Winner_deal,deal_won
+301,Winner_deal,deal_won
+302,Winner_deal,deal_won
+303,Winner_deal,deal_won
+304,Winner_deal,deal_won
+305,Winner_deal,deal_won
+306,Winner_deal,deal_won
+307,Winner_deal,deal_won
+308,Winner_deal,deal_won
+309,Winner_deal,deal_won
+310,Winner_deal,deal_won
+311,Winner_deal,deal_won
+312,Winner_deal,deal_won
+313,Winner_deal,deal_won
+314,Winner_deal,deal_won
+315,Winner_deal,deal_won
+316,Winner_deal,deal_won
+317,Winner_deal,deal_won
+318,Winner_deal,deal_won
+319,Winner_deal,deal_won
+320,Winner_deal,deal_won
+321,Winner_deal,deal_won
+322,Winner_deal,deal_won
+323,Winner_deal,deal_won
+324,Winner_deal,deal_won
+325,Winner_deal,deal_won
+326,Winner_deal,deal_won
+327,Winner_deal,deal_won
+328,Winner_deal,deal_won
+329,Winner_deal,deal_won
+330,Winner_deal,deal_won
+331,Winner_deal,deal_won
+332,Winner_deal,deal_won
+333,Winner_deal,deal_won
+334,Winner_deal,deal_won
+335,Winner_deal,deal_won
+336,Winner_deal,deal_won
+337,Winner_deal,deal_won
+338,Winner_deal,deal_won
+339,Winner_deal,deal_won
+340,Winner_deal,deal_won
+341,Winner_deal,deal_won
+342,Winner_deal,deal_won
+343,Winner_deal,deal_won
+344,Winner_deal,deal_won
+345,Winner_deal,deal_won
+346,Winner_deal,deal_won
+347,Winner_deal,deal_won
+348,Winner_deal,deal_won
+349,Winner_deal,deal_won
+350,Winner_deal,deal_won
+351,Winner_deal,deal_won
+352,Winner_deal,deal_won
+353,Winner_deal,deal_won
+354,Winner_deal,deal_won
+355,Winner_deal,deal_won
+356,Winner_deal,deal_won
+357,Winner_deal,deal_won
+358,Winner_deal,deal_won
+359,Winner_deal,deal_won
+360,Winner_deal,deal_won
+361,Winner_deal,deal_won
+362,Winner_deal,deal_won
+363,Winner_deal,deal_won
+364,Winner_deal,deal_won
+365,Winner_deal,deal_won
+366,Winner_deal,deal_won
+367,Winner_deal,deal_won
+368,Winner_deal,deal_won
+369,Winner_deal,deal_won
+370,Winner_deal,deal_won
+371,Winner_deal,deal_won
+372,Winner_deal,deal_won
+373,Winner_deal,deal_won
+374,Winner_deal,deal_won
+375,Winner_deal,deal_won
+376,Winner_deal,deal_won
+377,Winner_deal,deal_won
+378,Winner_deal,deal_won
+379,Winner_deal,deal_won
+380,Winner_deal,deal_won
+381,Winner_deal,deal_won
+382,Winner_deal,deal_won
+383,Winner_deal,deal_won
+384,Winner_deal,deal_won
+385,Winner_deal,deal_won
+386,Winner_deal,deal_won
+387,Winner_deal,deal_won
+388,Winner_deal,deal_won
+389,Winner_deal,deal_won
+390,Winner_deal,deal_won
+391,Winner_deal,deal_won
+392,Winner_deal,deal_won
+393,Winner_deal,deal_won
+394,Winner_deal,deal_won
+395,Winner_deal,deal_won
+396,Winner_deal,deal_won
+397,Winner_deal,deal_won
+398,Winner_deal,deal_won
+399,Winner_deal,deal_won
+400,Winner_deal,deal_won
+401,Winner_deal,deal_won
+402,Winner_deal,deal_won
+403,Winner_deal,deal_won
+404,Winner_deal,deal_won
+405,Winner_deal,deal_won
+406,Winner_deal,deal_won
+407,Winner_deal,deal_won
+408,Winner_deal,deal_won
+409,Winner_deal,deal_won
+410,Winner_deal,deal_won
+411,Winner_deal,deal_won
+412,Winner_deal,deal_won
+413,Winner_deal,deal_won
+414,Winner_deal,deal_won
+415,Winner_deal,deal_won
+416,Winner_deal,deal_won
+417,Winner_deal,deal_won
+418,Winner_deal,deal_won
+419,Winner_deal,deal_won
+420,Winner_deal,deal_won
+421,Winner_deal,deal_won
+422,Winner_deal,deal_won
+423,Winner_deal,deal_won
+424,Winner_deal,deal_won
+425,Winner_deal,deal_won
+426,Winner_deal,deal_won
+427,Winner_deal,deal_won
+428,Winner_deal,deal_won
+429,Winner_deal,deal_won
+430,Winner_deal,deal_won
+431,Winner_deal,deal_won
+432,Winner_deal,deal_won
+433,Winner_deal,deal_won
+434,Winner_deal,deal_won
+435,Winner_deal,deal_won
+436,Winner_deal,deal_won
+437,Winner_deal,deal_won
+438,Winner_deal,deal_won
+439,Winner_deal,deal_won
+440,Winner_deal,deal_won
+441,Winner_deal,deal_won
+442,Winner_deal,deal_won
+443,Winner_deal,deal_won
+444,Winner_deal,deal_won
+445,Winner_deal,deal_won
+446,Winner_deal,deal_won
+447,Winner_deal,deal_won
+448,Winner_deal,deal_won
+449,Winner_deal,deal_won
+450,Winner_deal,deal_won
+451,Winner_deal,deal_won
+452,Winner_deal,deal_won
+453,Winner_deal,deal_won
+454,Winner_deal,deal_won
+455,Winner_deal,deal_won
+456,Winner_deal,deal_won
+457,Winner_deal,deal_won
+458,Winner_deal,deal_won
+459,Winner_deal,deal_won
+460,Winner_deal,deal_won
+461,Winner_deal,deal_won
+462,Winner_deal,deal_won
+463,Winner_deal,deal_won
+464,Winner_deal,deal_won
+465,Winner_deal,deal_won
+466,Winner_deal,deal_won
+467,Winner_deal,deal_won
+468,Winner_deal,deal_won
+469,Winner_deal,deal_won
+470,Winner_deal,deal_won
+471,Winner_deal,deal_won
+472,Winner_deal,deal_won
+473,Winner_deal,deal_won
+474,Winner_deal,deal_won
+475,Winner_deal,deal_won
+476,Winner_deal,deal_won
+477,Winner_deal,deal_won
+478,Winner_deal,deal_won
+479,Winner_deal,deal_won
+480,Winner_deal,deal_won
+481,Winner_deal,deal_won
+482,Winner_deal,deal_won
+483,Winner_deal,deal_won
+484,Winner_deal,deal_won
+485,Winner_deal,deal_won
+486,Winner_deal,deal_won
+487,Winner_deal,deal_won
+488,Winner_deal,deal_won
+489,Winner_deal,deal_won
+490,Winner_deal,deal_won
+491,Winner_deal,deal_won
+492,Winner_deal,deal_won
+493,Winner_deal,deal_won
+494,Winner_deal,deal_won
+495,Winner_deal,deal_won
+496,Winner_deal,deal_won
+497,Winner_deal,deal_won
+498,Winner_deal,deal_won
+499,Winner_deal,deal_won
+500,Winner_deal,deal_won
+501,Winner_deal,deal_won
+502,Winner_deal,deal_won
+503,Winner_deal,deal_won
+504,Winner_deal,deal_won
+505,Winner_deal,deal_won
+506,Winner_deal,deal_won
+507,Winner_deal,deal_won
+508,Winner_deal,deal_won
+509,Winner_deal,deal_won
+510,Winner_deal,deal_won
+511,Winner_deal,deal_won
+512,Winner_deal,deal_won
+513,Winner_deal,deal_won
+514,Winner_deal,deal_won
+515,Winner_deal,deal_won
+516,Winner_deal,deal_won
+517,Winner_deal,deal_won
+518,Winner_deal,deal_won
+519,Winner_deal,deal_won
+520,Winner_deal,deal_won
+521,Winner_deal,deal_won
+522,Winner_deal,deal_won
+523,Winner_deal,deal_won
+524,Winner_deal,deal_won
+525,Winner_deal,deal_won
+526,Winner_deal,deal_won
+527,Winner_deal,deal_won
+528,Winner_deal,deal_won
+529,Winner_deal,deal_won
+530,Winner_deal,deal_won
+531,Winner_deal,deal_won
+532,Winner_deal,deal_won
+533,Winner_deal,deal_won
+534,Winner_deal,deal_won
+535,Winner_deal,deal_won
+536,Winner_deal,deal_won
+537,Winner_deal,deal_won
+538,Winner_deal,deal_won
+539,Winner_deal,deal_won
+540,Winner_deal,deal_won
+541,Winner_deal,deal_won
+542,Winner_deal,deal_won
+543,Winner_deal,deal_won
+544,Winner_deal,deal_won
+545,Winner_deal,deal_won
+546,Winner_deal,deal_won
+547,Winner_deal,deal_won
+548,Winner_deal,deal_won
+549,Winner_deal,deal_won
+550,Winner_deal,deal_won
+551,Winner_deal,deal_won
+552,Winner_deal,deal_won
+553,Winner_deal,deal_won
+554,Winner_deal,deal_won
+555,Winner_deal,deal_won
+556,Winner_deal,deal_won
+557,Winner_deal,deal_won
+558,Winner_deal,deal_won
+559,Winner_deal,deal_won
+560,Winner_deal,deal_won
+561,Winner_deal,deal_won
+562,Winner_deal,deal_won
+563,Winner_deal,deal_won
+564,Winner_deal,deal_won
+565,Winner_deal,deal_won
+566,Winner_deal,deal_won
+567,Winner_deal,deal_won
+568,Winner_deal,deal_won
+569,Winner_deal,deal_won
+570,Winner_deal,deal_won
+571,Winner_deal,deal_won
+572,Winner_deal,deal_won
+573,Winner_deal,deal_won
+574,Winner_deal,deal_won
+575,Winner_deal,deal_won
+576,Winner_deal,deal_won
+577,Winner_deal,deal_won
+578,Winner_deal,deal_won
+579,Winner_deal,deal_won
+580,Winner_deal,deal_won
+581,Winner_deal,deal_won
+582,Winner_deal,deal_won
+583,Winner_deal,deal_won
+584,Winner_deal,deal_won
+585,Winner_deal,deal_won
+586,Winner_deal,deal_won
+587,Winner_deal,deal_won
+588,Winner_deal,deal_won
+589,Winner_deal,deal_won
+590,Winner_deal,deal_won
+591,Winner_deal,deal_won
+592,Winner_deal,deal_won
+593,Winner_deal,deal_won
+594,Winner_deal,deal_won
+595,Winner_deal,deal_won
+596,Winner_deal,deal_won
+597,Winner_deal,deal_won
+598,Winner_deal,deal_won
+599,Winner_deal,deal_won
+600,Winner_deal,deal_won
+601,Winner_deal,deal_won
+602,Winner_deal,deal_won
+603,Winner_deal,deal_won
+604,Winner_deal,deal_won
+605,Winner_deal,deal_won
+606,Winner_deal,deal_won
+607,Winner_deal,deal_won
+608,Winner_deal,deal_won
+609,Winner_deal,deal_won
+610,Winner_deal,deal_won
+611,Winner_deal,deal_won
+612,Winner_deal,deal_won
+613,Winner_deal,deal_won
+614,Winner_deal,deal_won
+615,Winner_deal,deal_won
+616,Winner_deal,deal_won
+617,Winner_deal,deal_won
+618,Winner_deal,deal_won
+619,Winner_deal,deal_won
+620,Winner_deal,deal_won
+621,Winner_deal,deal_won
+622,Winner_deal,deal_won
+623,Winner_deal,deal_won
+624,Winner_deal,deal_won
+625,Winner_deal,deal_won
+626,Winner_deal,deal_won
+627,Winner_deal,deal_won
+628,Winner_deal,deal_won
+629,Winner_deal,deal_won
+630,Winner_deal,deal_won
+631,Winner_deal,deal_won
+632,Winner_deal,deal_won
+633,Winner_deal,deal_won
+634,Winner_deal,deal_won
+635,Winner_deal,deal_won
+636,Winner_deal,deal_won
+637,Winner_deal,deal_won
+638,Winner_deal,deal_won
+639,Winner_deal,deal_won
+640,Winner_deal,deal_won
+641,Winner_deal,deal_won
+642,Winner_deal,deal_won
+643,Winner_deal,deal_won
+644,Winner_deal,deal_won
+645,Winner_deal,deal_won
+646,Winner_deal,deal_won
+647,Winner_deal,deal_won
+648,Winner_deal,deal_won
+649,Winner_deal,deal_won
+650,Winner_deal,deal_won
+651,Winner_deal,deal_won
+652,Winner_deal,deal_won
+653,Winner_deal,deal_won
+654,Winner_deal,deal_won
+655,Winner_deal,deal_won
+656,Winner_deal,deal_won
+657,Winner_deal,deal_won
+658,Winner_deal,deal_won
+659,Winner_deal,deal_won
+660,Winner_deal,deal_won
+661,Winner_deal,deal_won
+662,Winner_deal,deal_won
+663,Winner_deal,deal_won
+664,Winner_deal,deal_won
+665,Winner_deal,deal_won
+666,Winner_deal,deal_won
+667,Winner_deal,deal_won
+668,Winner_deal,deal_won
+669,Winner_deal,deal_won
+670,Winner_deal,deal_won
+671,Winner_deal,deal_won
+672,Winner_deal,deal_won
+673,Winner_deal,deal_won
+674,Winner_deal,deal_won
+675,Winner_deal,deal_won
+676,Winner_deal,deal_won
+677,Winner_deal,deal_won
+678,Winner_deal,deal_won
+679,Winner_deal,deal_won
+680,Winner_deal,deal_won
+681,Winner_deal,deal_won
+682,Winner_deal,deal_won
+683,Winner_deal,deal_won
+684,Winner_deal,deal_won
+685,Winner_deal,deal_won
+686,Winner_deal,deal_won
+687,Winner_deal,deal_won
+688,Winner_deal,deal_won
+689,Winner_deal,deal_won
+690,Winner_deal,deal_won
+691,Winner_deal,deal_won
+692,Winner_deal,deal_won
+693,Winner_deal,deal_won
+694,Winner_deal,deal_won
+695,Winner_deal,deal_won
+696,Winner_deal,deal_won
+697,Winner_deal,deal_won
+698,Winner_deal,deal_won
+699,Winner_deal,deal_won
+700,Winner_deal,deal_won
+701,Winner_deal,deal_won
+702,Winner_deal,deal_won
+703,Winner_deal,deal_won
+704,Winner_deal,deal_won
+705,Winner_deal,deal_won
+706,Winner_deal,deal_won
+707,Winner_deal,deal_won
+708,Winner_deal,deal_won
+709,Winner_deal,deal_won
+710,Winner_deal,deal_won
+711,Winner_deal,deal_won
+712,Winner_deal,deal_won
+713,Winner_deal,deal_won
+714,Winner_deal,deal_won
+715,Winner_deal,deal_won
+716,Winner_deal,deal_won
+717,Winner_deal,deal_won
+718,Winner_deal,deal_won
+719,Winner_deal,deal_won
+720,Winner_deal,deal_won
+721,Winner_deal,deal_won
+722,Winner_deal,deal_won
+723,Winner_deal,deal_won
+724,Winner_deal,deal_won
+725,Winner_deal,deal_won
+726,Winner_deal,deal_won
+727,Winner_deal,deal_won
+728,Winner_deal,deal_won
+729,Winner_deal,deal_won
+730,Winner_deal,deal_won
+731,Winner_deal,deal_won
+732,Winner_deal,deal_won
+733,Winner_deal,deal_won
+734,Winner_deal,deal_won
+735,Winner_deal,deal_won
+736,Winner_deal,deal_won
+737,Winner_deal,deal_won
+738,Winner_deal,deal_won
+739,Winner_deal,deal_won
+740,Winner_deal,deal_won
+741,Winner_deal,deal_won
+742,Winner_deal,deal_won
+743,Winner_deal,deal_won
+744,Winner_deal,deal_won
+745,Winner_deal,deal_won
+746,Winner_deal,deal_won
+747,Winner_deal,deal_won
+748,Winner_deal,deal_won
+749,Winner_deal,deal_won
+750,Winner_deal,deal_won
+751,Winner_deal,deal_won
+752,Winner_deal,deal_won
+753,Winner_deal,deal_won
+754,Winner_deal,deal_won
+755,Winner_deal,deal_won
+756,Winner_deal,deal_won
+757,Winner_deal,deal_won
+758,Winner_deal,deal_won
+759,Winner_deal,deal_won
+760,Winner_deal,deal_won
+761,Winner_deal,deal_won
+762,Winner_deal,deal_won
+763,Winner_deal,deal_won
+764,Winner_deal,deal_won
+765,Winner_deal,deal_won
+766,Winner_deal,deal_won
+767,Winner_deal,deal_won
+768,Winner_deal,deal_won
+769,Winner_deal,deal_won
+770,Winner_deal,deal_won
+771,Winner_deal,deal_won
+772,Winner_deal,deal_won
+773,Winner_deal,deal_won
+774,Winner_deal,deal_won
+775,Winner_deal,deal_won
+776,Winner_deal,deal_won
+777,Winner_deal,deal_won
+778,Winner_deal,deal_won
+779,Winner_deal,deal_won
+780,Winner_deal,deal_won
+781,Winner_deal,deal_won
+782,Winner_deal,deal_won
+783,Winner_deal,deal_won
+784,Winner_deal,deal_won
+785,Winner_deal,deal_won
+786,Winner_deal,deal_won
+787,Winner_deal,deal_won
+788,Winner_deal,deal_won
+789,Winner_deal,deal_won
+790,Winner_deal,deal_won
+791,Winner_deal,deal_won
+792,Winner_deal,deal_won
+793,Winner_deal,deal_won
+794,Winner_deal,deal_won
+795,Winner_deal,deal_won
+796,Winner_deal,deal_won
+797,Winner_deal,deal_won
+798,Winner_deal,deal_won
+799,Winner_deal,deal_won
+800,Winner_deal,deal_won
+801,Winner_deal,deal_won
+802,Winner_deal,deal_won
+803,Winner_deal,deal_won
+804,Winner_deal,deal_won
+805,Winner_deal,deal_won
+806,Winner_deal,deal_won
+807,Winner_deal,deal_won
+808,Winner_deal,deal_won
+809,Winner_deal,deal_won
+810,Winner_deal,deal_won
+811,Winner_deal,deal_won
+812,Winner_deal,deal_won
+813,Winner_deal,deal_won
+814,Winner_deal,deal_won
+815,Winner_deal,deal_won
+816,Winner_deal,deal_won
+817,Winner_deal,deal_won
+818,Winner_deal,deal_won
+819,Winner_deal,deal_won
+820,Winner_deal,deal_won
+821,Winner_deal,deal_won
+822,Winner_deal,deal_won
+823,Winner_deal,deal_won
+824,Winner_deal,deal_won
+825,Winner_deal,deal_won
+826,Winner_deal,deal_won
+827,Winner_deal,deal_won
+828,Winner_deal,deal_won
+829,Winner_deal,deal_won
+830,Winner_deal,deal_won
+831,Winner_deal,deal_won
+832,Winner_deal,deal_won
+833,Winner_deal,deal_won
+834,Winner_deal,deal_won
+835,Winner_deal,deal_won
+836,Winner_deal,deal_won
+837,Winner_deal,deal_won
+838,Winner_deal,deal_won
+839,Winner_deal,deal_won
+840,Winner_deal,deal_won
+841,Winner_deal,deal_won
+842,Winner_deal,deal_won
+843,Winner_deal,deal_won
+844,Winner_deal,deal_won
+845,Winner_deal,deal_won
+846,Winner_deal,deal_won
+847,Winner_deal,deal_won
+848,Winner_deal,deal_won
+849,Winner_deal,deal_won
+850,Winner_deal,deal_won
+851,Winner_deal,deal_won
+852,Winner_deal,deal_won
+853,Winner_deal,deal_won
+854,Winner_deal,deal_won
+855,Winner_deal,deal_won
+856,Winner_deal,deal_won
+857,Winner_deal,deal_won
+858,Winner_deal,deal_won
+859,Winner_deal,deal_won
+860,Winner_deal,deal_won
+861,Winner_deal,deal_won
+862,Winner_deal,deal_won
+863,Winner_deal,deal_won
+864,Winner_deal,deal_won
+865,Winner_deal,deal_won
+866,Winner_deal,deal_won
+867,Winner_deal,deal_won
+868,Winner_deal,deal_won
+869,Winner_deal,deal_won
+870,Winner_deal,deal_won
+871,Winner_deal,deal_won
+872,Winner_deal,deal_won
+873,Winner_deal,deal_won
+874,Winner_deal,deal_won
+875,Winner_deal,deal_won
+876,Winner_deal,deal_won
+877,Winner_deal,deal_won
+878,Winner_deal,deal_won
+879,Winner_deal,deal_won
+880,Winner_deal,deal_won
+881,Winner_deal,deal_won
+882,Winner_deal,deal_won
+883,Winner_deal,deal_won
+884,Winner_deal,deal_won
+885,Winner_deal,deal_won
+886,Winner_deal,deal_won
+887,Winner_deal,deal_won
+888,Winner_deal,deal_won
+889,Winner_deal,deal_won
+890,Winner_deal,deal_won
+891,Winner_deal,deal_won
+892,Winner_deal,deal_won
+893,Winner_deal,deal_won
+894,Winner_deal,deal_won
+895,Winner_deal,deal_won
+896,Winner_deal,deal_won
+897,Winner_deal,deal_won
+898,Winner_deal,deal_won
+899,Winner_deal,deal_won
+900,Winner_deal,deal_won
+901,Winner_deal,deal_won
+902,Winner_deal,deal_won
+903,Winner_deal,deal_won
+904,Winner_deal,deal_won
+905,Winner_deal,deal_won
+906,Winner_deal,deal_won
+907,Winner_deal,deal_won
+908,Winner_deal,deal_won
+909,Winner_deal,deal_won
+910,Winner_deal,deal_won
+911,Winner_deal,deal_won
+912,Winner_deal,deal_won
+913,Winner_deal,deal_won
+914,Winner_deal,deal_won
+915,Winner_deal,deal_won
+916,Winner_deal,deal_won
+917,Winner_deal,deal_won
+918,Winner_deal,deal_won
+919,Winner_deal,deal_won
+920,Winner_deal,deal_won
+921,Winner_deal,deal_won
+922,Winner_deal,deal_won
+923,Winner_deal,deal_won
+924,Winner_deal,deal_won
+925,Winner_deal,deal_won
+926,Winner_deal,deal_won
+927,Winner_deal,deal_won
+928,Winner_deal,deal_won
+929,Winner_deal,deal_won
+930,Winner_deal,deal_won
+931,Winner_deal,deal_won
+932,Winner_deal,deal_won
+933,Winner_deal,deal_won
+934,Winner_deal,deal_won
+935,Winner_deal,deal_won
+936,Winner_deal,deal_won
+937,Winner_deal,deal_won
+938,Winner_deal,deal_won
+939,Winner_deal,deal_won
+940,Winner_deal,deal_won
+941,Winner_deal,deal_won
+942,Winner_deal,deal_won
+943,Winner_deal,deal_won
+944,Winner_deal,deal_won
+945,Winner_deal,deal_won
+946,Winner_deal,deal_won
+947,Winner_deal,deal_won
+948,Winner_deal,deal_won
+949,Winner_deal,deal_won
+950,Winner_deal,deal_won
+951,Winner_deal,deal_won
+952,Winner_deal,deal_won
+953,Winner_deal,deal_won
+954,Winner_deal,deal_won
+955,Winner_deal,deal_won
+956,Winner_deal,deal_won
+957,Winner_deal,deal_won
+958,Winner_deal,deal_won
+959,Winner_deal,deal_won
+960,Winner_deal,deal_won
+961,Winner_deal,deal_won
+962,Winner_deal,deal_won
+963,Winner_deal,deal_won
+964,Winner_deal,deal_won
+965,Winner_deal,deal_won
+966,Winner_deal,deal_won
+967,Winner_deal,deal_won
+968,Winner_deal,deal_won
+969,Winner_deal,deal_won
+970,Winner_deal,deal_won
+971,Winner_deal,deal_won
+972,Winner_deal,deal_won
+973,Winner_deal,deal_won
+974,Winner_deal,deal_won
+975,Winner_deal,deal_won
+976,Winner_deal,deal_won
+977,Winner_deal,deal_won
+978,Winner_deal,deal_won
+979,Winner_deal,deal_won
+980,Winner_deal,deal_won
+981,Winner_deal,deal_won
+982,Winner_deal,deal_won
+983,Winner_deal,deal_won
+984,Winner_deal,deal_won
+985,Winner_deal,deal_won
+986,Winner_deal,deal_won
+987,Winner_deal,deal_won
+988,Winner_deal,deal_won
+989,Winner_deal,deal_won
+990,Winner_deal,deal_won
+991,Winner_deal,deal_won
+992,Winner_deal,deal_won
+993,Winner_deal,deal_won
+994,Winner_deal,deal_won
+995,Winner_deal,deal_won
+996,Winner_deal,deal_won
+997,Winner_deal,deal_won
+998,Winner_deal,deal_won
+999,Winner_deal,deal_won
+1000,Lost Cause,deal_lost
+1001,Lost Cause,deal_lost
+1002,Lost Cause,deal_lost
+1003,Lost Cause,deal_lost
+1004,Lost Cause,deal_lost
+1005,Lost Cause,deal_lost
+1006,Lost Cause,deal_lost
+1007,Lost Cause,deal_lost
+1008,Lost Cause,deal_lost
+1009,Lost Cause,deal_lost
+1010,Lost Cause,deal_lost
+1011,Lost Cause,deal_lost
+1012,Lost Cause,deal_lost
+1013,Lost Cause,deal_lost
+1014,Lost Cause,deal_lost
+1015,Lost Cause,deal_lost
+1016,Lost Cause,deal_lost
+1017,Lost Cause,deal_lost
+1018,Lost Cause,deal_lost
+1019,Lost Cause,deal_lost
+1020,Lost Cause,deal_lost
+1021,Lost Cause,deal_lost
+1022,Lost Cause,deal_lost
+1023,Lost Cause,deal_lost
+1024,Lost Cause,deal_lost
+1025,Lost Cause,deal_lost
+1026,Lost Cause,deal_lost
+1027,Lost Cause,deal_lost
+1028,Lost Cause,deal_lost
+1029,Lost Cause,deal_lost
+1030,Lost Cause,deal_lost
+1031,Lost Cause,deal_lost
+1032,Lost Cause,deal_lost
+1033,Lost Cause,deal_lost
+1034,Lost Cause,deal_lost
+1035,Lost Cause,deal_lost
+1036,Lost Cause,deal_lost
+1037,Lost Cause,deal_lost
+1038,Lost Cause,deal_lost
+1039,Lost Cause,deal_lost
+1040,Lost Cause,deal_lost
+1041,Lost Cause,deal_lost
+1042,Lost Cause,deal_lost
+1043,Lost Cause,deal_lost
+1044,Lost Cause,deal_lost
+1045,Lost Cause,deal_lost
+1046,Lost Cause,deal_lost
+1047,Lost Cause,deal_lost
+1048,Lost Cause,deal_lost
+1049,Lost Cause,deal_lost
+1050,Lost Cause,deal_lost
+1051,Lost Cause,deal_lost
+1052,Lost Cause,deal_lost
+1053,Lost Cause,deal_lost
+1054,Lost Cause,deal_lost
+1055,Lost Cause,deal_lost
+1056,Lost Cause,deal_lost
+1057,Lost Cause,deal_lost
+1058,Lost Cause,deal_lost
+1059,Lost Cause,deal_lost
+1060,Lost Cause,deal_lost
+1061,Lost Cause,deal_lost
+1062,Lost Cause,deal_lost
+1063,Lost Cause,deal_lost
+1064,Lost Cause,deal_lost
+1065,Lost Cause,deal_lost
+1066,Lost Cause,deal_lost
+1067,Lost Cause,deal_lost
+1068,Lost Cause,deal_lost
+1069,Lost Cause,deal_lost
+1070,Lost Cause,deal_lost
+1071,Lost Cause,deal_lost
+1072,Lost Cause,deal_lost
+1073,Lost Cause,deal_lost
+1074,Lost Cause,deal_lost
+1075,Lost Cause,deal_lost
+1076,Lost Cause,deal_lost
+1077,Lost Cause,deal_lost
+1078,Lost Cause,deal_lost
+1079,Lost Cause,deal_lost
+1080,Lost Cause,deal_lost
+1081,Lost Cause,deal_lost
+1082,Lost Cause,deal_lost
+1083,Lost Cause,deal_lost
+1084,Lost Cause,deal_lost
+1085,Lost Cause,deal_lost
+1086,Lost Cause,deal_lost
+1087,Lost Cause,deal_lost
+1088,Lost Cause,deal_lost
+1089,Lost Cause,deal_lost
+1090,Lost Cause,deal_lost
+1091,Lost Cause,deal_lost
+1092,Lost Cause,deal_lost
+1093,Lost Cause,deal_lost
+1094,Lost Cause,deal_lost
+1095,Lost Cause,deal_lost
+1096,Lost Cause,deal_lost
+1097,Lost Cause,deal_lost
+1098,Lost Cause,deal_lost
+1099,Lost Cause,deal_lost
+1100,Lost Cause,deal_lost
+1101,Lost Cause,deal_lost
+1102,Lost Cause,deal_lost
+1103,Lost Cause,deal_lost
+1104,Lost Cause,deal_lost
+1105,Lost Cause,deal_lost
+1106,Lost Cause,deal_lost
+1107,Lost Cause,deal_lost
+1108,Lost Cause,deal_lost
+1109,Lost Cause,deal_lost
+1110,Lost Cause,deal_lost
+1111,Lost Cause,deal_lost
+1112,Lost Cause,deal_lost
+1113,Lost Cause,deal_lost
+1114,Lost Cause,deal_lost
+1115,Lost Cause,deal_lost
+1116,Lost Cause,deal_lost
+1117,Lost Cause,deal_lost
+1118,Lost Cause,deal_lost
+1119,Lost Cause,deal_lost
+1120,Lost Cause,deal_lost
+1121,Lost Cause,deal_lost
+1122,Lost Cause,deal_lost
+1123,Lost Cause,deal_lost
+1124,Lost Cause,deal_lost
+1125,Lost Cause,deal_lost
+1126,Lost Cause,deal_lost
+1127,Lost Cause,deal_lost
+1128,Lost Cause,deal_lost
+1129,Lost Cause,deal_lost
+1130,Lost Cause,deal_lost
+1131,Lost Cause,deal_lost
+1132,Lost Cause,deal_lost
+1133,Lost Cause,deal_lost
+1134,Lost Cause,deal_lost
+1135,Lost Cause,deal_lost
+1136,Lost Cause,deal_lost
+1137,Lost Cause,deal_lost
+1138,Lost Cause,deal_lost
+1139,Lost Cause,deal_lost
+1140,Lost Cause,deal_lost
+1141,Lost Cause,deal_lost
+1142,Lost Cause,deal_lost
+1143,Lost Cause,deal_lost
+1144,Lost Cause,deal_lost
+1145,Lost Cause,deal_lost
+1146,Lost Cause,deal_lost
+1147,Lost Cause,deal_lost
+1148,Lost Cause,deal_lost
+1149,Lost Cause,deal_lost
+1150,Lost Cause,deal_lost
+1151,Lost Cause,deal_lost
+1152,Lost Cause,deal_lost
+1153,Lost Cause,deal_lost
+1154,Lost Cause,deal_lost
+1155,Lost Cause,deal_lost
+1156,Lost Cause,deal_lost
+1157,Lost Cause,deal_lost
+1158,Lost Cause,deal_lost
+1159,Lost Cause,deal_lost
+1160,Lost Cause,deal_lost
+1161,Lost Cause,deal_lost
+1162,Lost Cause,deal_lost
+1163,Lost Cause,deal_lost
+1164,Lost Cause,deal_lost
+1165,Lost Cause,deal_lost
+1166,Lost Cause,deal_lost
+1167,Lost Cause,deal_lost
+1168,Lost Cause,deal_lost
+1169,Lost Cause,deal_lost
+1170,Lost Cause,deal_lost
+1171,Lost Cause,deal_lost
+1172,Lost Cause,deal_lost
+1173,Lost Cause,deal_lost
+1174,Lost Cause,deal_lost
+1175,Lost Cause,deal_lost
+1176,Lost Cause,deal_lost
+1177,Lost Cause,deal_lost
+1178,Lost Cause,deal_lost
+1179,Lost Cause,deal_lost
+1180,Lost Cause,deal_lost
+1181,Lost Cause,deal_lost
+1182,Lost Cause,deal_lost
+1183,Lost Cause,deal_lost
+1184,Lost Cause,deal_lost
+1185,Lost Cause,deal_lost
+1186,Lost Cause,deal_lost
+1187,Lost Cause,deal_lost
+1188,Lost Cause,deal_lost
+1189,Lost Cause,deal_lost
+1190,Lost Cause,deal_lost
+1191,Lost Cause,deal_lost
+1192,Lost Cause,deal_lost
+1193,Lost Cause,deal_lost
+1194,Lost Cause,deal_lost
+1195,Lost Cause,deal_lost
+1196,Lost Cause,deal_lost
+1197,Lost Cause,deal_lost
+1198,Lost Cause,deal_lost
+1199,Lost Cause,deal_lost
+1200,Lost Cause,deal_lost
+1201,Lost Cause,deal_lost
+1202,Lost Cause,deal_lost
+1203,Lost Cause,deal_lost
+1204,Lost Cause,deal_lost
+1205,Lost Cause,deal_lost
+1206,Lost Cause,deal_lost
+1207,Lost Cause,deal_lost
+1208,Lost Cause,deal_lost
+1209,Lost Cause,deal_lost
+1210,Lost Cause,deal_lost
+1211,Lost Cause,deal_lost
+1212,Lost Cause,deal_lost
+1213,Lost Cause,deal_lost
+1214,Lost Cause,deal_lost
+1215,Lost Cause,deal_lost
+1216,Lost Cause,deal_lost
+1217,Lost Cause,deal_lost
+1218,Lost Cause,deal_lost
+1219,Lost Cause,deal_lost
+1220,Lost Cause,deal_lost
+1221,Lost Cause,deal_lost
+1222,Lost Cause,deal_lost
+1223,Lost Cause,deal_lost
+1224,Lost Cause,deal_lost
+1225,Lost Cause,deal_lost
+1226,Lost Cause,deal_lost
+1227,Lost Cause,deal_lost
+1228,Lost Cause,deal_lost
+1229,Lost Cause,deal_lost
+1230,Lost Cause,deal_lost
+1231,Lost Cause,deal_lost
+1232,Lost Cause,deal_lost
+1233,Lost Cause,deal_lost
+1234,Lost Cause,deal_lost
+1235,Lost Cause,deal_lost
+1236,Lost Cause,deal_lost
+1237,Lost Cause,deal_lost
+1238,Lost Cause,deal_lost
+1239,Lost Cause,deal_lost
+1240,Lost Cause,deal_lost
+1241,Lost Cause,deal_lost
+1242,Lost Cause,deal_lost
+1243,Lost Cause,deal_lost
+1244,Lost Cause,deal_lost
+1245,Lost Cause,deal_lost
+1246,Lost Cause,deal_lost
+1247,Lost Cause,deal_lost
+1248,Lost Cause,deal_lost
+1249,Lost Cause,deal_lost
+1250,Lost Cause,deal_lost
+1251,Lost Cause,deal_lost
+1252,Lost Cause,deal_lost
+1253,Lost Cause,deal_lost
+1254,Lost Cause,deal_lost
+1255,Lost Cause,deal_lost
+1256,Lost Cause,deal_lost
+1257,Lost Cause,deal_lost
+1258,Lost Cause,deal_lost
+1259,Lost Cause,deal_lost
+1260,Lost Cause,deal_lost
+1261,Lost Cause,deal_lost
+1262,Lost Cause,deal_lost
+1263,Lost Cause,deal_lost
+1264,Lost Cause,deal_lost
+1265,Lost Cause,deal_lost
+1266,Lost Cause,deal_lost
+1267,Lost Cause,deal_lost
+1268,Lost Cause,deal_lost
+1269,Lost Cause,deal_lost
+1270,Lost Cause,deal_lost
+1271,Lost Cause,deal_lost
+1272,Lost Cause,deal_lost
+1273,Lost Cause,deal_lost
+1274,Lost Cause,deal_lost
+1275,Lost Cause,deal_lost
+1276,Lost Cause,deal_lost
+1277,Lost Cause,deal_lost
+1278,Lost Cause,deal_lost
+1279,Lost Cause,deal_lost
+1280,Lost Cause,deal_lost
+1281,Lost Cause,deal_lost
+1282,Lost Cause,deal_lost
+1283,Lost Cause,deal_lost
+1284,Lost Cause,deal_lost
+1285,Lost Cause,deal_lost
+1286,Lost Cause,deal_lost
+1287,Lost Cause,deal_lost
+1288,Lost Cause,deal_lost
+1289,Lost Cause,deal_lost
+1290,Lost Cause,deal_lost
+1291,Lost Cause,deal_lost
+1292,Lost Cause,deal_lost
+1293,Lost Cause,deal_lost
+1294,Lost Cause,deal_lost
+1295,Lost Cause,deal_lost
+1296,Lost Cause,deal_lost
+1297,Lost Cause,deal_lost
+1298,Lost Cause,deal_lost
+1299,Lost Cause,deal_lost
+1300,Lost Cause,deal_lost
+1301,Lost Cause,deal_lost
+1302,Lost Cause,deal_lost
+1303,Lost Cause,deal_lost
+1304,Lost Cause,deal_lost
+1305,Lost Cause,deal_lost
+1306,Lost Cause,deal_lost
+1307,Lost Cause,deal_lost
+1308,Lost Cause,deal_lost
+1309,Lost Cause,deal_lost
+1310,Lost Cause,deal_lost
+1311,Lost Cause,deal_lost
+1312,Lost Cause,deal_lost
+1313,Lost Cause,deal_lost
+1314,Lost Cause,deal_lost
+1315,Lost Cause,deal_lost
+1316,Lost Cause,deal_lost
+1317,Lost Cause,deal_lost
+1318,Lost Cause,deal_lost
+1319,Lost Cause,deal_lost
+1320,Lost Cause,deal_lost
+1321,Lost Cause,deal_lost
+1322,Lost Cause,deal_lost
+1323,Lost Cause,deal_lost
+1324,Lost Cause,deal_lost
+1325,Lost Cause,deal_lost
+1326,Lost Cause,deal_lost
+1327,Lost Cause,deal_lost
+1328,Lost Cause,deal_lost
+1329,Lost Cause,deal_lost
+1330,Lost Cause,deal_lost
+1331,Lost Cause,deal_lost
+1332,Lost Cause,deal_lost
+1333,Lost Cause,deal_lost
+1334,Lost Cause,deal_lost
+1335,Lost Cause,deal_lost
+1336,Lost Cause,deal_lost
+1337,Lost Cause,deal_lost
+1338,Lost Cause,deal_lost
+1339,Lost Cause,deal_lost
+1340,Lost Cause,deal_lost
+1341,Lost Cause,deal_lost
+1342,Lost Cause,deal_lost
+1343,Lost Cause,deal_lost
+1344,Lost Cause,deal_lost
+1345,Lost Cause,deal_lost
+1346,Lost Cause,deal_lost
+1347,Lost Cause,deal_lost
+1348,Lost Cause,deal_lost
+1349,Lost Cause,deal_lost
+1350,Lost Cause,deal_lost
+1351,Lost Cause,deal_lost
+1352,Lost Cause,deal_lost
+1353,Lost Cause,deal_lost
+1354,Lost Cause,deal_lost
+1355,Lost Cause,deal_lost
+1356,Lost Cause,deal_lost
+1357,Lost Cause,deal_lost
+1358,Lost Cause,deal_lost
+1359,Lost Cause,deal_lost
+1360,Lost Cause,deal_lost
+1361,Lost Cause,deal_lost
+1362,Lost Cause,deal_lost
+1363,Lost Cause,deal_lost
+1364,Lost Cause,deal_lost
+1365,Lost Cause,deal_lost
+1366,Lost Cause,deal_lost
+1367,Lost Cause,deal_lost
+1368,Lost Cause,deal_lost
+1369,Lost Cause,deal_lost
+1370,Lost Cause,deal_lost
+1371,Lost Cause,deal_lost
+1372,Lost Cause,deal_lost
+1373,Lost Cause,deal_lost
+1374,Lost Cause,deal_lost
+1375,Lost Cause,deal_lost
+1376,Lost Cause,deal_lost
+1377,Lost Cause,deal_lost
+1378,Lost Cause,deal_lost
+1379,Lost Cause,deal_lost
+1380,Lost Cause,deal_lost
+1381,Lost Cause,deal_lost
+1382,Lost Cause,deal_lost
+1383,Lost Cause,deal_lost
+1384,Lost Cause,deal_lost
+1385,Lost Cause,deal_lost
+1386,Lost Cause,deal_lost
+1387,Lost Cause,deal_lost
+1388,Lost Cause,deal_lost
+1389,Lost Cause,deal_lost
+1390,Lost Cause,deal_lost
+1391,Lost Cause,deal_lost
+1392,Lost Cause,deal_lost
+1393,Lost Cause,deal_lost
+1394,Lost Cause,deal_lost
+1395,Lost Cause,deal_lost
+1396,Lost Cause,deal_lost
+1397,Lost Cause,deal_lost
+1398,Lost Cause,deal_lost
+1399,Lost Cause,deal_lost
+1400,Lost Cause,deal_lost
+1401,Lost Cause,deal_lost
+1402,Lost Cause,deal_lost
+1403,Lost Cause,deal_lost
+1404,Lost Cause,deal_lost
+1405,Lost Cause,deal_lost
+1406,Lost Cause,deal_lost
+1407,Lost Cause,deal_lost
+1408,Lost Cause,deal_lost
+1409,Lost Cause,deal_lost
+1410,Lost Cause,deal_lost
+1411,Lost Cause,deal_lost
+1412,Lost Cause,deal_lost
+1413,Lost Cause,deal_lost
+1414,Lost Cause,deal_lost
+1415,Lost Cause,deal_lost
+1416,Lost Cause,deal_lost
+1417,Lost Cause,deal_lost
+1418,Lost Cause,deal_lost
+1419,Lost Cause,deal_lost
+1420,Lost Cause,deal_lost
+1421,Lost Cause,deal_lost
+1422,Lost Cause,deal_lost
+1423,Lost Cause,deal_lost
+1424,Lost Cause,deal_lost
+1425,Lost Cause,deal_lost
+1426,Lost Cause,deal_lost
+1427,Lost Cause,deal_lost
+1428,Lost Cause,deal_lost
+1429,Lost Cause,deal_lost
+1430,Lost Cause,deal_lost
+1431,Lost Cause,deal_lost
+1432,Lost Cause,deal_lost
+1433,Lost Cause,deal_lost
+1434,Lost Cause,deal_lost
+1435,Lost Cause,deal_lost
+1436,Lost Cause,deal_lost
+1437,Lost Cause,deal_lost
+1438,Lost Cause,deal_lost
+1439,Lost Cause,deal_lost
+1440,Lost Cause,deal_lost
+1441,Lost Cause,deal_lost
+1442,Lost Cause,deal_lost
+1443,Lost Cause,deal_lost
+1444,Lost Cause,deal_lost
+1445,Lost Cause,deal_lost
+1446,Lost Cause,deal_lost
+1447,Lost Cause,deal_lost
+1448,Lost Cause,deal_lost
+1449,Lost Cause,deal_lost
+1450,Lost Cause,deal_lost
+1451,Lost Cause,deal_lost
+1452,Lost Cause,deal_lost
+1453,Lost Cause,deal_lost
+1454,Lost Cause,deal_lost
+1455,Lost Cause,deal_lost
+1456,Lost Cause,deal_lost
+1457,Lost Cause,deal_lost
+1458,Lost Cause,deal_lost
+1459,Lost Cause,deal_lost
+1460,Lost Cause,deal_lost
+1461,Lost Cause,deal_lost
+1462,Lost Cause,deal_lost
+1463,Lost Cause,deal_lost
+1464,Lost Cause,deal_lost
+1465,Lost Cause,deal_lost
+1466,Lost Cause,deal_lost
+1467,Lost Cause,deal_lost
+1468,Lost Cause,deal_lost
+1469,Lost Cause,deal_lost
+1470,Lost Cause,deal_lost
+1471,Lost Cause,deal_lost
+1472,Lost Cause,deal_lost
+1473,Lost Cause,deal_lost
+1474,Lost Cause,deal_lost
+1475,Lost Cause,deal_lost
+1476,Lost Cause,deal_lost
+1477,Lost Cause,deal_lost
+1478,Lost Cause,deal_lost
+1479,Lost Cause,deal_lost
+1480,Lost Cause,deal_lost
+1481,Lost Cause,deal_lost
+1482,Lost Cause,deal_lost
+1483,Lost Cause,deal_lost
+1484,Lost Cause,deal_lost
+1485,Lost Cause,deal_lost
+1486,Lost Cause,deal_lost
+1487,Lost Cause,deal_lost
+1488,Lost Cause,deal_lost
+1489,Lost Cause,deal_lost
+1490,Lost Cause,deal_lost
+1491,Lost Cause,deal_lost
+1492,Lost Cause,deal_lost
+1493,Lost Cause,deal_lost
+1494,Lost Cause,deal_lost
+1495,Lost Cause,deal_lost
+1496,Lost Cause,deal_lost
+1497,Lost Cause,deal_lost
+1498,Lost Cause,deal_lost
+1499,Lost Cause,deal_lost
+1500,Lost Cause,deal_lost
+1501,Lost Cause,deal_lost
+1502,Lost Cause,deal_lost
+1503,Lost Cause,deal_lost
+1504,Lost Cause,deal_lost
+1505,Lost Cause,deal_lost
+1506,Lost Cause,deal_lost
+1507,Lost Cause,deal_lost
+1508,Lost Cause,deal_lost
+1509,Lost Cause,deal_lost
+1510,Lost Cause,deal_lost
+1511,Lost Cause,deal_lost
+1512,Lost Cause,deal_lost
+1513,Lost Cause,deal_lost
+1514,Lost Cause,deal_lost
+1515,Lost Cause,deal_lost
+1516,Lost Cause,deal_lost
+1517,Lost Cause,deal_lost
+1518,Lost Cause,deal_lost
+1519,Lost Cause,deal_lost
+1520,Lost Cause,deal_lost
+1521,Lost Cause,deal_lost
+1522,Lost Cause,deal_lost
+1523,Lost Cause,deal_lost
+1524,Lost Cause,deal_lost
+1525,Lost Cause,deal_lost
+1526,Lost Cause,deal_lost
+1527,Lost Cause,deal_lost
+1528,Lost Cause,deal_lost
+1529,Lost Cause,deal_lost
+1530,Lost Cause,deal_lost
+1531,Lost Cause,deal_lost
+1532,Lost Cause,deal_lost
+1533,Lost Cause,deal_lost
+1534,Lost Cause,deal_lost
+1535,Lost Cause,deal_lost
+1536,Lost Cause,deal_lost
+1537,Lost Cause,deal_lost
+1538,Lost Cause,deal_lost
+1539,Lost Cause,deal_lost
+1540,Lost Cause,deal_lost
+1541,Lost Cause,deal_lost
+1542,Lost Cause,deal_lost
+1543,Lost Cause,deal_lost
+1544,Lost Cause,deal_lost
+1545,Lost Cause,deal_lost
+1546,Lost Cause,deal_lost
+1547,Lost Cause,deal_lost
+1548,Lost Cause,deal_lost
+1549,Lost Cause,deal_lost
+1550,Lost Cause,deal_lost
+1551,Lost Cause,deal_lost
+1552,Lost Cause,deal_lost
+1553,Lost Cause,deal_lost
+1554,Lost Cause,deal_lost
+1555,Lost Cause,deal_lost
+1556,Lost Cause,deal_lost
+1557,Lost Cause,deal_lost
+1558,Lost Cause,deal_lost
+1559,Lost Cause,deal_lost
+1560,Lost Cause,deal_lost
+1561,Lost Cause,deal_lost
+1562,Lost Cause,deal_lost
+1563,Lost Cause,deal_lost
+1564,Lost Cause,deal_lost
+1565,Lost Cause,deal_lost
+1566,Lost Cause,deal_lost
+1567,Lost Cause,deal_lost
+1568,Lost Cause,deal_lost
+1569,Lost Cause,deal_lost
+1570,Lost Cause,deal_lost
+1571,Lost Cause,deal_lost
+1572,Lost Cause,deal_lost
+1573,Lost Cause,deal_lost
+1574,Lost Cause,deal_lost
+1575,Lost Cause,deal_lost
+1576,Lost Cause,deal_lost
+1577,Lost Cause,deal_lost
+1578,Lost Cause,deal_lost
+1579,Lost Cause,deal_lost
+1580,Lost Cause,deal_lost
+1581,Lost Cause,deal_lost
+1582,Lost Cause,deal_lost
+1583,Lost Cause,deal_lost
+1584,Lost Cause,deal_lost
+1585,Lost Cause,deal_lost
+1586,Lost Cause,deal_lost
+1587,Lost Cause,deal_lost
+1588,Lost Cause,deal_lost
+1589,Lost Cause,deal_lost
+1590,Lost Cause,deal_lost
+1591,Lost Cause,deal_lost
+1592,Lost Cause,deal_lost
+1593,Lost Cause,deal_lost
+1594,Lost Cause,deal_lost
+1595,Lost Cause,deal_lost
+1596,Lost Cause,deal_lost
+1597,Lost Cause,deal_lost
+1598,Lost Cause,deal_lost
+1599,Lost Cause,deal_lost
+1600,Lost Cause,deal_lost
+1601,Lost Cause,deal_lost
+1602,Lost Cause,deal_lost
+1603,Lost Cause,deal_lost
+1604,Lost Cause,deal_lost
+1605,Lost Cause,deal_lost
+1606,Lost Cause,deal_lost
+1607,Lost Cause,deal_lost
+1608,Lost Cause,deal_lost
+1609,Lost Cause,deal_lost
+1610,Lost Cause,deal_lost
+1611,Lost Cause,deal_lost
+1612,Lost Cause,deal_lost
+1613,Lost Cause,deal_lost
+1614,Lost Cause,deal_lost
+1615,Lost Cause,deal_lost
+1616,Lost Cause,deal_lost
+1617,Lost Cause,deal_lost
+1618,Lost Cause,deal_lost
+1619,Lost Cause,deal_lost
+1620,Lost Cause,deal_lost
+1621,Lost Cause,deal_lost
+1622,Lost Cause,deal_lost
+1623,Lost Cause,deal_lost
+1624,Lost Cause,deal_lost
+1625,Lost Cause,deal_lost
+1626,Lost Cause,deal_lost
+1627,Lost Cause,deal_lost
+1628,Lost Cause,deal_lost
+1629,Lost Cause,deal_lost
+1630,Lost Cause,deal_lost
+1631,Lost Cause,deal_lost
+1632,Lost Cause,deal_lost
+1633,Lost Cause,deal_lost
+1634,Lost Cause,deal_lost
+1635,Lost Cause,deal_lost
+1636,Lost Cause,deal_lost
+1637,Lost Cause,deal_lost
+1638,Lost Cause,deal_lost
+1639,Lost Cause,deal_lost
+1640,Lost Cause,deal_lost
+1641,Lost Cause,deal_lost
+1642,Lost Cause,deal_lost
+1643,Lost Cause,deal_lost
+1644,Lost Cause,deal_lost
+1645,Lost Cause,deal_lost
+1646,Lost Cause,deal_lost
+1647,Lost Cause,deal_lost
+1648,Lost Cause,deal_lost
+1649,Lost Cause,deal_lost
+1650,Lost Cause,deal_lost
+1651,Lost Cause,deal_lost
+1652,Lost Cause,deal_lost
+1653,Lost Cause,deal_lost
+1654,Lost Cause,deal_lost
+1655,Lost Cause,deal_lost
+1656,Lost Cause,deal_lost
+1657,Lost Cause,deal_lost
+1658,Lost Cause,deal_lost
+1659,Lost Cause,deal_lost
+1660,Lost Cause,deal_lost
+1661,Lost Cause,deal_lost
+1662,Lost Cause,deal_lost
+1663,Lost Cause,deal_lost
+1664,Lost Cause,deal_lost
+1665,Lost Cause,deal_lost
+1666,Lost Cause,deal_lost
+1667,Lost Cause,deal_lost
+1668,Lost Cause,deal_lost
+1669,Lost Cause,deal_lost
+1670,Lost Cause,deal_lost
+1671,Lost Cause,deal_lost
+1672,Lost Cause,deal_lost
+1673,Lost Cause,deal_lost
+1674,Lost Cause,deal_lost
+1675,Lost Cause,deal_lost
+1676,Lost Cause,deal_lost
+1677,Lost Cause,deal_lost
+1678,Lost Cause,deal_lost
+1679,Lost Cause,deal_lost
+1680,Lost Cause,deal_lost
+1681,Lost Cause,deal_lost
+1682,Lost Cause,deal_lost
+1683,Lost Cause,deal_lost
+1684,Lost Cause,deal_lost
+1685,Lost Cause,deal_lost
+1686,Lost Cause,deal_lost
+1687,Lost Cause,deal_lost
+1688,Lost Cause,deal_lost
+1689,Lost Cause,deal_lost
+1690,Lost Cause,deal_lost
+1691,Lost Cause,deal_lost
+1692,Lost Cause,deal_lost
+1693,Lost Cause,deal_lost
+1694,Lost Cause,deal_lost
+1695,Lost Cause,deal_lost
+1696,Lost Cause,deal_lost
+1697,Lost Cause,deal_lost
+1698,Lost Cause,deal_lost
+1699,Lost Cause,deal_lost
+1700,Lost Cause,deal_lost
+1701,Lost Cause,deal_lost
+1702,Lost Cause,deal_lost
+1703,Lost Cause,deal_lost
+1704,Lost Cause,deal_lost
+1705,Lost Cause,deal_lost
+1706,Lost Cause,deal_lost
+1707,Lost Cause,deal_lost
+1708,Lost Cause,deal_lost
+1709,Lost Cause,deal_lost
+1710,Lost Cause,deal_lost
+1711,Lost Cause,deal_lost
+1712,Lost Cause,deal_lost
+1713,Lost Cause,deal_lost
+1714,Lost Cause,deal_lost
+1715,Lost Cause,deal_lost
+1716,Lost Cause,deal_lost
+1717,Lost Cause,deal_lost
+1718,Lost Cause,deal_lost
+1719,Lost Cause,deal_lost
+1720,Lost Cause,deal_lost
+1721,Lost Cause,deal_lost
+1722,Lost Cause,deal_lost
+1723,Lost Cause,deal_lost
+1724,Lost Cause,deal_lost
+1725,Lost Cause,deal_lost
+1726,Lost Cause,deal_lost
+1727,Lost Cause,deal_lost
+1728,Lost Cause,deal_lost
+1729,Lost Cause,deal_lost
+1730,Lost Cause,deal_lost
+1731,Lost Cause,deal_lost
+1732,Lost Cause,deal_lost
+1733,Lost Cause,deal_lost
+1734,Lost Cause,deal_lost
+1735,Lost Cause,deal_lost
+1736,Lost Cause,deal_lost
+1737,Lost Cause,deal_lost
+1738,Lost Cause,deal_lost
+1739,Lost Cause,deal_lost
+1740,Lost Cause,deal_lost
+1741,Lost Cause,deal_lost
+1742,Lost Cause,deal_lost
+1743,Lost Cause,deal_lost
+1744,Lost Cause,deal_lost
+1745,Lost Cause,deal_lost
+1746,Lost Cause,deal_lost
+1747,Lost Cause,deal_lost
+1748,Lost Cause,deal_lost
+1749,Lost Cause,deal_lost
+1750,Lost Cause,deal_lost
+1751,Lost Cause,deal_lost
+1752,Lost Cause,deal_lost
+1753,Lost Cause,deal_lost
+1754,Lost Cause,deal_lost
+1755,Lost Cause,deal_lost
+1756,Lost Cause,deal_lost
+1757,Lost Cause,deal_lost
+1758,Lost Cause,deal_lost
+1759,Lost Cause,deal_lost
+1760,Lost Cause,deal_lost
+1761,Lost Cause,deal_lost
+1762,Lost Cause,deal_lost
+1763,Lost Cause,deal_lost
+1764,Lost Cause,deal_lost
+1765,Lost Cause,deal_lost
+1766,Lost Cause,deal_lost
+1767,Lost Cause,deal_lost
+1768,Lost Cause,deal_lost
+1769,Lost Cause,deal_lost
+1770,Lost Cause,deal_lost
+1771,Lost Cause,deal_lost
+1772,Lost Cause,deal_lost
+1773,Lost Cause,deal_lost
+1774,Lost Cause,deal_lost
+1775,Lost Cause,deal_lost
+1776,Lost Cause,deal_lost
+1777,Lost Cause,deal_lost
+1778,Lost Cause,deal_lost
+1779,Lost Cause,deal_lost
+1780,Lost Cause,deal_lost
+1781,Lost Cause,deal_lost
+1782,Lost Cause,deal_lost
+1783,Lost Cause,deal_lost
+1784,Lost Cause,deal_lost
+1785,Lost Cause,deal_lost
+1786,Lost Cause,deal_lost
+1787,Lost Cause,deal_lost
+1788,Lost Cause,deal_lost
+1789,Lost Cause,deal_lost
+1790,Lost Cause,deal_lost
+1791,Lost Cause,deal_lost
+1792,Lost Cause,deal_lost
+1793,Lost Cause,deal_lost
+1794,Lost Cause,deal_lost
+1795,Lost Cause,deal_lost
+1796,Lost Cause,deal_lost
+1797,Lost Cause,deal_lost
+1798,Lost Cause,deal_lost
+1799,Lost Cause,deal_lost
+1800,Lost Cause,deal_lost
+1801,Lost Cause,deal_lost
+1802,Lost Cause,deal_lost
+1803,Lost Cause,deal_lost
+1804,Lost Cause,deal_lost
+1805,Lost Cause,deal_lost
+1806,Lost Cause,deal_lost
+1807,Lost Cause,deal_lost
+1808,Lost Cause,deal_lost
+1809,Lost Cause,deal_lost
+1810,Lost Cause,deal_lost
+1811,Lost Cause,deal_lost
+1812,Lost Cause,deal_lost
+1813,Lost Cause,deal_lost
+1814,Lost Cause,deal_lost
+1815,Lost Cause,deal_lost
+1816,Lost Cause,deal_lost
+1817,Lost Cause,deal_lost
+1818,Lost Cause,deal_lost
+1819,Lost Cause,deal_lost
+1820,Lost Cause,deal_lost
+1821,Lost Cause,deal_lost
+1822,Lost Cause,deal_lost
+1823,Lost Cause,deal_lost
+1824,Lost Cause,deal_lost
+1825,Lost Cause,deal_lost
+1826,Lost Cause,deal_lost
+1827,Lost Cause,deal_lost
+1828,Lost Cause,deal_lost
+1829,Lost Cause,deal_lost
+1830,Lost Cause,deal_lost
+1831,Lost Cause,deal_lost
+1832,Lost Cause,deal_lost
+1833,Lost Cause,deal_lost
+1834,Lost Cause,deal_lost
+1835,Lost Cause,deal_lost
+1836,Lost Cause,deal_lost
+1837,Lost Cause,deal_lost
+1838,Lost Cause,deal_lost
+1839,Lost Cause,deal_lost
+1840,Lost Cause,deal_lost
+1841,Lost Cause,deal_lost
+1842,Lost Cause,deal_lost
+1843,Lost Cause,deal_lost
+1844,Lost Cause,deal_lost
+1845,Lost Cause,deal_lost
+1846,Lost Cause,deal_lost
+1847,Lost Cause,deal_lost
+1848,Lost Cause,deal_lost
+1849,Lost Cause,deal_lost
+1850,Lost Cause,deal_lost
+1851,Lost Cause,deal_lost
+1852,Lost Cause,deal_lost
+1853,Lost Cause,deal_lost
+1854,Lost Cause,deal_lost
+1855,Lost Cause,deal_lost
+1856,Lost Cause,deal_lost
+1857,Lost Cause,deal_lost
+1858,Lost Cause,deal_lost
+1859,Lost Cause,deal_lost
+1860,Lost Cause,deal_lost
+1861,Lost Cause,deal_lost
+1862,Lost Cause,deal_lost
+1863,Lost Cause,deal_lost
+1864,Lost Cause,deal_lost
+1865,Lost Cause,deal_lost
+1866,Lost Cause,deal_lost
+1867,Lost Cause,deal_lost
+1868,Lost Cause,deal_lost
+1869,Lost Cause,deal_lost
+1870,Lost Cause,deal_lost
+1871,Lost Cause,deal_lost
+1872,Lost Cause,deal_lost
+1873,Lost Cause,deal_lost
+1874,Lost Cause,deal_lost
+1875,Lost Cause,deal_lost
+1876,Lost Cause,deal_lost
+1877,Lost Cause,deal_lost
+1878,Lost Cause,deal_lost
+1879,Lost Cause,deal_lost
+1880,Lost Cause,deal_lost
+1881,Lost Cause,deal_lost
+1882,Lost Cause,deal_lost
+1883,Lost Cause,deal_lost
+1884,Lost Cause,deal_lost
+1885,Lost Cause,deal_lost
+1886,Lost Cause,deal_lost
+1887,Lost Cause,deal_lost
+1888,Lost Cause,deal_lost
+1889,Lost Cause,deal_lost
+1890,Lost Cause,deal_lost
+1891,Lost Cause,deal_lost
+1892,Lost Cause,deal_lost
+1893,Lost Cause,deal_lost
+1894,Lost Cause,deal_lost
+1895,Lost Cause,deal_lost
+1896,Lost Cause,deal_lost
+1897,Lost Cause,deal_lost
+1898,Lost Cause,deal_lost
+1899,Lost Cause,deal_lost
+1900,Lost Cause,deal_lost
+1901,Lost Cause,deal_lost
+1902,Lost Cause,deal_lost
+1903,Lost Cause,deal_lost
+1904,Lost Cause,deal_lost
+1905,Lost Cause,deal_lost
+1906,Lost Cause,deal_lost
+1907,Lost Cause,deal_lost
+1908,Lost Cause,deal_lost
+1909,Lost Cause,deal_lost
+1910,Lost Cause,deal_lost
+1911,Lost Cause,deal_lost
+1912,Lost Cause,deal_lost
+1913,Lost Cause,deal_lost
+1914,Lost Cause,deal_lost
+1915,Lost Cause,deal_lost
+1916,Lost Cause,deal_lost
+1917,Lost Cause,deal_lost
+1918,Lost Cause,deal_lost
+1919,Lost Cause,deal_lost
+1920,Lost Cause,deal_lost
+1921,Lost Cause,deal_lost
+1922,Lost Cause,deal_lost
+1923,Lost Cause,deal_lost
+1924,Lost Cause,deal_lost
+1925,Lost Cause,deal_lost
+1926,Lost Cause,deal_lost
+1927,Lost Cause,deal_lost
+1928,Lost Cause,deal_lost
+1929,Lost Cause,deal_lost
+1930,Lost Cause,deal_lost
+1931,Lost Cause,deal_lost
+1932,Lost Cause,deal_lost
+1933,Lost Cause,deal_lost
+1934,Lost Cause,deal_lost
+1935,Lost Cause,deal_lost
+1936,Lost Cause,deal_lost
+1937,Lost Cause,deal_lost
+1938,Lost Cause,deal_lost
+1939,Lost Cause,deal_lost
+1940,Lost Cause,deal_lost
+1941,Lost Cause,deal_lost
+1942,Lost Cause,deal_lost
+1943,Lost Cause,deal_lost
+1944,Lost Cause,deal_lost
+1945,Lost Cause,deal_lost
+1946,Lost Cause,deal_lost
+1947,Lost Cause,deal_lost
+1948,Lost Cause,deal_lost
+1949,Lost Cause,deal_lost
+1950,Lost Cause,deal_lost
+1951,Lost Cause,deal_lost
+1952,Lost Cause,deal_lost
+1953,Lost Cause,deal_lost
+1954,Lost Cause,deal_lost
+1955,Lost Cause,deal_lost
+1956,Lost Cause,deal_lost
+1957,Lost Cause,deal_lost
+1958,Lost Cause,deal_lost
+1959,Lost Cause,deal_lost
+1960,Lost Cause,deal_lost
+1961,Lost Cause,deal_lost
+1962,Lost Cause,deal_lost
+1963,Lost Cause,deal_lost
+1964,Lost Cause,deal_lost
+1965,Lost Cause,deal_lost
+1966,Lost Cause,deal_lost
+1967,Lost Cause,deal_lost
+1968,Lost Cause,deal_lost
+1969,Lost Cause,deal_lost
+1970,Lost Cause,deal_lost
+1971,Lost Cause,deal_lost
+1972,Lost Cause,deal_lost
+1973,Lost Cause,deal_lost
+1974,Lost Cause,deal_lost
+1975,Lost Cause,deal_lost
+1976,Lost Cause,deal_lost
+1977,Lost Cause,deal_lost
+1978,Lost Cause,deal_lost
+1979,Lost Cause,deal_lost
+1980,Lost Cause,deal_lost
+1981,Lost Cause,deal_lost
+1982,Lost Cause,deal_lost
+1983,Lost Cause,deal_lost
+1984,Lost Cause,deal_lost
+1985,Lost Cause,deal_lost
+1986,Lost Cause,deal_lost
+1987,Lost Cause,deal_lost
+1988,Lost Cause,deal_lost
+1989,Lost Cause,deal_lost
+1990,Lost Cause,deal_lost
+1991,Lost Cause,deal_lost
+1992,Lost Cause,deal_lost
+1993,Lost Cause,deal_lost
+1994,Lost Cause,deal_lost
+1995,Lost Cause,deal_lost
+1996,Lost Cause,deal_lost
+1997,Lost Cause,deal_lost
+1998,Lost Cause,deal_lost
+1999,Lost Cause,deal_lost

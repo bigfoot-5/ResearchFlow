@@ -1,0 +1,6 @@
+adalflow[openai,groq,faiss-cpu]
+ollama
+python-dotenv
+openai
+requests
+pandas
