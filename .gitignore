@@ -5,6 +5,7 @@ __pycache__/
 venv/
 hubspot_etl.db
 Adalflow/
+system-prompts-and-models-of-ai-tools/
 
 # C extensions
 *.so

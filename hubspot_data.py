@@ -151,26 +151,26 @@ def create_synthetic_dataframe(num_entries):
     return synthetic_deal_df
 
 if __name__ == "__main__":
-    deal_df = create_synthetic_dataframe(1000)
-    deal_df.to_csv("synthetic_hubspot_df_basic.csv")
-    print(deal_df)
-    # objects_list = ["contacts", "companies", "deals"]
-    # data_dict = {}
-    # for item in objects_list:
-    #     data = get_info(item=item)
-    #     data_dict[item] = data
-    #     print(f"{item}: {len(data)} records fetched")
-    # print(json.dumps(data_dict, indent=4))
-    # print(data_dict["deals"][0].keys())
+    # deal_df = create_synthetic_dataframe(10)
+    # deal_df.to_csv("synthetic_hubspot_df_basic.csv")
+    # print(deal_df)
+    objects_list = ["contacts", "companies", "deals"]
+    data_dict = {}
+    for item in objects_list:
+        data = get_info(item=item)
+        data_dict[item] = data
+        print(f"{item}: {len(data)} records fetched")
+    print(json.dumps(data_dict, indent=4))
+    print(data_dict["deals"][0].keys())
 
-    # insert_data_to_db(
-    #     contacts=data_dict["contacts"],
-    #     companies=data_dict["companies"],
-    #     deals=data_dict["deals"]
-    # )
+    insert_data_to_db(
+        contacts=data_dict["contacts"],
+        companies=data_dict["companies"],
+        deals=data_dict["deals"]
+    )
 
-    # print("✅ All data saved to SQLite database.")
-    # predict_deal_success(data_dict["deals"])
+    print("✅ All data saved to SQLite database.")
+    predict_deal_success(data_dict["deals"])
 
 # def list_object_schemas():
 #     url = "https://api.hubapi.com/crm/v3/schemas"

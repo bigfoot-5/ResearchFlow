@@ -1,6 +1,8 @@
-adalflow[openai,groq,faiss-cpu]
+adalflow
 ollama
 python-dotenv
 openai
 requests
 pandas
+pyyaml
+scikit-learn

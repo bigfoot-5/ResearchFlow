@@ -1,4 +1,4 @@
-import adalflow as adal
+import adalflow_testing_network as adal
 import re
 
 # Initialize the model
