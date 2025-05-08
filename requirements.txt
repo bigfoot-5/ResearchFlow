@@ -6,3 +6,5 @@ requests
 pandas
 pyyaml
 scikit-learn
+datasets
+torch

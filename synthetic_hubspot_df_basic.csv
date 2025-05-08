@@ -1,21 +1,21 @@
-,Deal,Deal_status
-0,Winner_deal,deal_won
-1,Winner_deal,deal_won
-2,Winner_deal,deal_won
-3,Winner_deal,deal_won
-4,Winner_deal,deal_won
-5,Winner_deal,deal_won
-6,Winner_deal,deal_won
-7,Winner_deal,deal_won
-8,Winner_deal,deal_won
-9,Winner_deal,deal_won
-10,Lost Cause,deal_lost
-11,Lost Cause,deal_lost
-12,Lost Cause,deal_lost
-13,Lost Cause,deal_lost
-14,Lost Cause,deal_lost
-15,Lost Cause,deal_lost
-16,Lost Cause,deal_lost
-17,Lost Cause,deal_lost
-18,Lost Cause,deal_lost
-19,Lost Cause,deal_lost
+,question,class_name
+0,Acme Technologies Ltd.,deal_won
+1,Globex Corporation,deal_won
+2,InnovaSoft Inc.,deal_won
+3,Quantum Dynamics Group,deal_won
+4,Nimbus Cloud Services,deal_won
+5,Vertex Financial Partners,deal_won
+6,Bluewave Solutions,deal_won
+7,OmniRetail Group,deal_won
+8,SecureNet Systems,deal_won
+9,FutureWorks AI,deal_won
+10,John’s Startup Idea,deal_lost
+11,FastMoney.biz,deal_lost
+12,Click4Leads,deal_lost
+13,Test Company,deal_lost
+14,CoolProject2023,deal_lost
+15,NoCompanyName,deal_lost
+16,FreeEmailClientUser,deal_lost
+17,Test123 Corporation,deal_lost
+18,SideHustle Network,deal_lost
+19,TempClient Placeholder,deal_lost

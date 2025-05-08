@@ -141,11 +141,37 @@ def predict_deal_success(deal_data):
     )
     print("LLM Prediction:\n", response.output_text)
 def create_synthetic_dataframe(num_entries):
-    deal_name = ["Winner_deal"]*num_entries + ["Lost Cause"]*num_entries
+    winning_companies = [
+        "Acme Technologies Ltd.",
+        "Globex Corporation",
+        "InnovaSoft Inc.",
+        "Quantum Dynamics Group",
+        "Nimbus Cloud Services",
+        "Vertex Financial Partners",
+        "Bluewave Solutions",
+        "OmniRetail Group",
+        "SecureNet Systems",
+        "FutureWorks AI"
+    ]
+
+    # Companies likely to lose deals
+    losing_companies = [
+        "John’s Startup Idea",
+        "FastMoney.biz",
+        "Click4Leads",
+        "Test Company",
+        "CoolProject2023",
+        "NoCompanyName",
+        "FreeEmailClientUser",
+        "Test123 Corporation",
+        "SideHustle Network",
+        "TempClient Placeholder"
+    ]
+    deal_name = winning_companies + losing_companies
     deal_label = ["deal_won"] * num_entries + ["deal_lost"] * num_entries
     deal_dict = {
-        "Deal" : deal_name,
-        "Deal_status": deal_label
+        "company_name" : deal_name,
+        "class_name": deal_label
     }
     synthetic_deal_df = pd.DataFrame(deal_dict)
     return synthetic_deal_df
@@ -160,8 +186,8 @@ if __name__ == "__main__":
         data = get_info(item=item)
         data_dict[item] = data
         print(f"{item}: {len(data)} records fetched")
-    print(json.dumps(data_dict, indent=4))
-    print(data_dict["deals"][0].keys())
+    print(json.dumps(data_dict["deals"], indent=4))
+    # print(data_dict["deals"][0].keys())
 
     insert_data_to_db(
         contacts=data_dict["contacts"],
@@ -169,8 +195,8 @@ if __name__ == "__main__":
         deals=data_dict["deals"]
     )
 
-    print("✅ All data saved to SQLite database.")
-    predict_deal_success(data_dict["deals"])
+    # print("✅ All data saved to SQLite database.")
+    # predict_deal_success(data_dict["deals"])
 
 # def list_object_schemas():
 #     url = "https://api.hubapi.com/crm/v3/schemas"
