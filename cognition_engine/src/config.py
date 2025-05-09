@@ -23,7 +23,9 @@ class Settings(BaseSettings):
     # LLM API settings
     OPENAI_API_KEY: Optional[str] = None  # API key for OpenAI (used by reflection agent)
     OLLAMA_BASE_URL: str = "http://localhost:11434"
-    OLLAMA_MODEL: str = "gemma3:1b"  # Default model, can be overridden by .env
+    OLLAMA_MODEL: str = "gemma3:1b"
+    OLLAMA_HOST: Optional[str] = None
+    HUBSPOT_API_KEY: Optional[str] = None  # Default model, can be overridden by .env
     
     # Application settings
     ENABLE_REFLECTION: bool = True
