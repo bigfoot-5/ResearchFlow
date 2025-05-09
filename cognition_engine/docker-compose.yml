@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: cognition_postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: cognition_user # You can change this
+      POSTGRES_PASSWORD: cognition_password # Change this to a strong password in your actual .env
+      POSTGRES_DB: cognition_db
+    ports:
+      - "5432:5432" # Maps container port 5432 to host port 5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Persists data in a Docker volume
+
+  chroma:
+    image: chromadb/chroma:0.5.3 # Updating to latest 0.5.x server version
+    container_name: cognition_chroma_db
+    restart: always
+    ports:
+      - "8000:8000" # Chroma default port, maps to host port 8000
+    volumes:
+      - chroma_data:/chroma/chroma # Persists Chroma data
+    # For production, you might need more configurations, like API keys or different server settings.
+    # For local dev, default settings are often fine.
+    # Remove custom command to use the default startup procedure of the 0.5.3 image
+    # command: >
+    #   sh -c "pip install numpy~=1.26.0 && \
+    #          uvicorn chromadb.app:app --host 0.0.0.0 --port 8000 --workers 1"
+
+volumes:
+  postgres_data:
+    driver: local
+  chroma_data:
+    driver: local 

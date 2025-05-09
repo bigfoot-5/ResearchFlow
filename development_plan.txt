@@ -1,0 +1,171 @@
+Phase 1: Project Foundation & Mock Data Generation
+
+1.  **Environment & Project Setup:**
+    *   Create a root project directory (e.g., `cognition_engine`).
+    *   Set up a Python virtual environment (e.g., using `venv` or `conda`).
+    *   Initialize a `requirements.txt` file. We'll add FastAPI, Pydantic, SQLAlchemy, Psycopg2 (for PostgreSQL), and a library for mock data generation (like Faker) to start.
+    *   Create a basic `README.md` outlining the project objective and setup steps.
+    *   Initialize a Git repository for version control.
+    *   Establish a basic directory structure (e.g., `src/`, `tests/`, `data/`, `scripts/`).
+    *   Implement basic configuration management (e.g., using a `.env` file and `python-dotenv` for database URLs, API keys for later, etc.).
+2.  **Data Modeling (HubSpot Entities):**
+    *   Inside `src/data_models/`, create `hubspot_entities.py`.
+    *   Define Pydantic models for `Deal` and `Company` based on the "Required Fields from HubSpot API" section.
+    *   Include all specified fields with appropriate data types (e.g., `datetime` for dates, `float` for Amount, `str` for text).
+    *   (Optional for now, can be added later if deemed critical for early demos) Define a Pydantic model for `Contact`.
+3.  **Mock Data Generation:**
+    *   Inside `src/data_generation/`, create `mock_hubspot_data.py`.
+    *   Develop a script using a library like `Faker` to generate a configurable number of realistic mock `Deal` and `Company` records.
+    *   Ensure variety and plausibility for key fields:
+        *   `Deal Stage`: Include various stages, including "Closed Won" and "Closed Lost."
+        *   `Closed Lost Reason`: Generate diverse free-text reasons.
+        *   `Industry`, `Geography`, `Employee Count`, `Annual Revenue` for companies.
+        *   `Buyer Persona`, `Use Case` for deals.
+        *   Dates (`Create Date`, `Close Date`) should be logical.
+    *   The script should be able to output this data, perhaps as a list of Pydantic objects or directly to a JSON file.
+4.  **Database Setup (PostgreSQL & SQLAlchemy):**
+    *   Write a `docker-compose.yml` to run a PostgreSQL instance.
+    *   Inside `src/database/`, create `models.py` to define SQLAlchemy ORM models corresponding to the Pydantic `Deal` and `Company` models. Include relationships (e.g., a deal belongs to a company).
+    *   Create `database_setup.py` with functions to initialize the database connection (using SQLAlchemy) and create tables from the ORM models.
+    *   (Optional, for more robust schema management later: Consider setting up Alembic for migrations, but for MVP `create_all` might suffice).
+5.  **Initial ETL Simulation (Mock Data Ingestion):**
+    *   Create a script in `scripts/ingest_mock_data.py`.
+    *   This script will:
+        *   Use the `mock_hubspot_data.py` module to generate data.
+        *   Connect to the PostgreSQL database.
+        *   Transform Pydantic objects to SQLAlchemy objects and save them to the database.
+        *   This simulates the "Data Ingestion & ETL Pipeline" using mock data.
+
+Phase 2: Derived Metrics Engine & Basic API
+
+1.  **Derived Metrics Engine Implementation:**
+    *   Inside `src/core_logic/`, create `derived_metrics.py`.
+    *   Implement functions to calculate each derived metric specified in section "2. Derived Metrics Engine":
+        *   `Deal Age`: `Today - Create Date`
+        *   `Velocity`: `Close Date - Create Date` (for closed deals)
+        *   `Conversion Rate`: `(# Closed Won) / (# Total per segment)` (Note: This will require segment definition later; for now, calculate overall or placeholder.)
+        *   `ICP Fit Signal`: Placeholder logic (e.g., simple rule based on a couple of fields like `Industry` + `Employee Count`).
+        *   `Dead Zone`: `Deal Age > X days + Closed Lost Reason` matches certain patterns.
+        *   `Price Sensitivity`: Segment of lost deals with budget/pricing reasons (will also depend on `Closed Lost Reason` classification later).
+    *   These metrics should be calculated for each deal and ideally stored as new columns in the `Deals` table or a related analytics table. Modify `scripts/ingest_mock_data.py` or create a new processing step to compute and store these post-ingestion.
+2.  **API Framework Setup (FastAPI):**
+    *   Create `src/main.py` for the FastAPI application.
+    *   Set up basic application structure, including routers.
+    *   Implement basic error handling middleware.
+    *   Set up basic logging.
+3.  **Initial API Endpoints for Data Access:**
+    *   In `src/api/endpoints/`, create `data_endpoints.py`.
+    *   Implement simple GET endpoints to:
+        *   List all companies.
+        *   List all deals (optionally with filters).
+        *   Fetch a specific deal or company by ID, showing raw and derived metrics.
+        *   These endpoints will help verify the data layer and metrics calculations.
+
+Phase 3: Core Cognition Engine - LLM & Vector Store Setup
+
+1.  **LLM Setup (Local/Mocked):**
+    *   Integrate with a local LLM provider like Ollama (e.g., with Mistral or Llama). Add necessary client libraries to `requirements.txt`.
+    *   Alternatively, start with a "mock" LLM client that returns predefined responses for classification/summarization tasks to allow parallel development.
+    *   Create `src/llm/` directory. Inside, `llm_client.py` to abstract LLM interactions.
+    *   Consider using LangChain or LlamaIndex from the start for structuring LLM calls, prompt management, and RAG. Add to `requirements.txt`.
+2.  **LLM-Powered Perception (Initial Implementation):**
+    *   In `src/core_logic/perception.py`:
+        *   **Closed Lost Reason Classification:**
+            *   Define standard buckets (e.g., Pricing, Champion, Fit, Product Gap) as per spec.
+            *   Implement a function using the LLM client to classify the free-text `Closed Lost Reason` from deals into these buckets.
+            *   Update the ETL/data processing step to apply this classification and store the result.
+        *   **NLP Summarization (Use Case Normalization - Placeholder):**
+            *   Start with a basic approach for `Use Case` field normalization (e.g., simple keyword extraction or a very basic LLM prompt for summarization/tagging).
+3.  **Vector Store Setup (ChromaDB or Weaviate):**
+    *   Add ChromaDB or Weaviate to `docker-compose.yml`.
+    *   Create `src/vector_store/` directory. Inside, `vector_client.py` to handle:
+        *   Connection to the vector database.
+        *   Embedding creation (e.g., using sentence-transformers or an LLM's embedding endpoint).
+        *   Storing embeddings for relevant textual data (e.g., `Company Name`, `Industry`, `Use Case`, normalized `Closed Lost Reason` tags, deal descriptions if available).
+    *   Update the ETL/data processing pipeline to populate the vector store. This is the "Memory Layer" for semantic similarity.
+4.  **RAG Framework (Initial):**
+    *   In `src/core_logic/rag.py`:
+        *   Set up a basic RAG pipeline using LangChain/LlamaIndex.
+        *   This pipeline should be able to:
+            *   Take a query.
+            *   Retrieve relevant context from PostgreSQL (for structured data/metrics).
+            *   Retrieve relevant context from the Vector Store (for semantic similarity).
+            *   Combine contexts and pass to the LLM for generation.
+
+Phase 4: Implementing Key API Endpoints & LLM-Driven Insights
+
+1.  **Endpoint 4: `GET /api/v1/insights/text-summary`:**
+    *   In `src/api/endpoints/`, create `insights_endpoints.py`.
+    *   Implement this endpoint. It will use the RAG pipeline and LLM client to generate a qualitative text summary paragraph based on the overall state of the (mock) data.
+    *   Ensure output is JSON containing the text summary.
+2.  **Reasoning Layer - Segment Identification & Summaries:**
+    *   In `src/core_logic/reasoning.py`:
+        *   Define logic (initially rule-based, then LLM-assisted) for identifying segments:
+            *   "Rocket" (High-fit): e.g., based on `ICP Fit Signal`, high win rate.
+            *   "Moneybag" (Price-sensitive): e.g., based on classified `Closed Lost Reason`.
+            *   "Ice Cube" (Disqualified/Dead deals): e.g., based on `Dead Zone` metric.
+            *   "Warning" (Churn-prone): (This might require more data like renewal info, for MVP it could be a placeholder or based on certain negative signals).
+        *   Implement LLM tasks to generate segment-specific summaries like "Fintech-EMEA-100-500 closes 22% faster..." using RAG to fetch relevant data.
+3.  **Endpoint 1: `GET /api/v1/insights/ICP-summary`:**
+    *   Implement this endpoint in `insights_endpoints.py`.
+    *   It should:
+        *   Identify the "top_segment" (e.g., highest win rate or "Rocket" segment).
+        *   Gather its metrics (`win_rate`, `velocity_days`, `expansion_rate` - expansion might be faked for mock data, `csat` - also faked).
+        *   Placeholder for `heatmap` data (can be simple aggregated stats for now).
+        *   Generate `insights` (list of strings) and a `recommendation` string using the LLM and RAG, based on mock data patterns.
+        *   Return data in the exact JSON structure specified in `instruction.txt`.
+4.  **Endpoint 2: `GET /api/v1/segments/dead-zones`:**
+    *   Implement in `insights_endpoints.py`.
+    *   Return segments identified as "Dead Zone" or "Ice Cube."
+5.  **Endpoint 3: `GET /api/v1/segments/price-sensitive`:**
+    *   Implement in `insights_endpoints.py`.
+    *   Return segments identified as "Price-sensitive" or "Moneybag."
+
+Phase 5: Asynchronous Tasks, Output Formatting & Deployment Prep
+
+1.  **Task Queue Integration (Celery):**
+    *   Add Celery and a broker (e.g., Redis or RabbitMQ) to `docker-compose.yml` and `requirements.txt`.
+    *   Set up Celery in the FastAPI application (`src/celery_app.py`, `src/tasks.py`).
+    *   Identify computationally intensive tasks (e.g., batch LLM classifications, complex RAG-based summary generations) and refactor them to be Celery asynchronous tasks.
+    *   API endpoints can trigger these tasks and potentially return a task ID for status checking.
+2.  **Output Formatting for Frontend:**
+    *   Ensure all API endpoints return JSON as specified.
+    *   For `text-summary` and insights within `ICP-summary`, ensure the LLM can be prompted to generate Markdown or a simple HTML block suitable for display.
+    *   Verify that visual-ready segment labels (`rocket`, `ice_cube`, `moneybag`, `warning`) are used/returned where appropriate.
+3.  **Deployment Preparation (Docker & Postman):**
+    *   Create a `Dockerfile` for the FastAPI application (including Celery worker setup).
+    *   Enhance `docker-compose.yml` to orchestrate the FastAPI app, PostgreSQL, Vector DB, Celery worker(s), and message broker.
+    *   Develop a Postman collection (`SignalCTRL_Cognition_Engine.postman_collection.json`) with requests for all defined API endpoints for easy testing and demonstration.
+
+Phase 6: Testing, Refinement & Demo Preparation
+
+1.  **Testing:**
+    *   Write unit tests (e.g., using `pytest`) for critical functions:
+        *   Derived metric calculations.
+        *   Mock data generation logic.
+        *   LLM interaction mocks/stubs.
+        *   API endpoint logic (testing responses with mock data).
+    *   Perform integration testing by running the `docker-compose` setup and hitting APIs with Postman.
+2.  **Refinement & Iteration:**
+    *   Refine mock data generation to cover more edge cases and realistic scenarios.
+    *   Iterate on LLM prompts (even with local/mock LLM) to improve the quality of classifications, summaries, and insights.
+    *   Review and improve error handling, logging, and API response consistency.
+3.  **Documentation:**
+    *   Thoroughly update `README.md` with detailed setup instructions, how to run the application (including Docker), API endpoint overview, and how to ingest/generate mock data.
+    *   Add code comments and docstrings where necessary.
+4.  **Demo Preparation:**
+    *   Create a demo script or walkthrough plan:
+        *   Show mock data generation and ingestion.
+        *   Query basic data endpoints.
+        *   Demonstrate each of the `/api/v1/insights/...` and `/api/v1/segments/...` endpoints.
+        *   Explain the (simulated) cognitive processes.
+        *   Highlight the JSON and Markdown/HTML outputs.
+
+Key Review Checkpoints:
+
+*   **End of Phase 1:** Review data models, mock data quality, and DB schema. Ensure basic data ingestion works.
+*   **End of Phase 2:** Verify all derived metrics are calculated correctly and basic APIs serve this data.
+*   **End of Phase 3:** Confirm basic LLM connectivity (even if mocked), vector store population, and initial RAG pipeline structure.
+*   **After each key endpoint in Phase 4:** Test the endpoint thoroughly against mock data and LLM outputs.
+*   **End of Phase 5:** Ensure Celery integration is working and deployment artifacts (Dockerfiles, Postman) are ready.
+*   **Final Review (Pre-Demo):** Full system walkthrough, code review for clarity and robustness, documentation check. 

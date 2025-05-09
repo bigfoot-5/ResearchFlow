@@ -1,0 +1,268 @@
+Cognition Engine - Technical Requisition Document
+Objective
+Build a cognition-first, LLM-powered backend system that analyzes CRM deal data from HubSpot and produces intelligent, context-aware, and proactive ICP segmentation insights. This system will not serve as a traditional dashboard, but as an AI-driven GTM Brain capable of perception, memory, reasoning, and execution.
+
+1. Data Ingestion & ETL Pipeline
+Source:
+HubSpot CRM via HubSpot API
+
+
+Frequency:
+Daily sync via scheduler OR webhook-based incremental ingestion
+
+
+Required Entities:
+Deals
+
+
+Companies
+
+
+(Optional for persona mapping) Contacts
+
+
+Required Fields from HubSpot API:
+Field
+Entity
+Purpose
+dealId
+Deals
+Primary identifier
+Deal Name
+Deals
+Human-readable name
+Create Date, Close Date
+Deals
+For velocity & deal age
+Amount
+Deals
+ACV / deal size
+Deal Stage
+Deals
+Stage progression analysis
+Pipeline
+Deals
+New Biz vs Renewal segmentation
+Buyer Persona
+Deals
+Persona segmentation
+Use Case
+Deals
+Strategic GTM mapping
+Closed Lost Reason
+Deals
+Disqualification insight
+Company Name
+Company
+Foreign key mapping
+Industry
+Company
+ICP clustering
+Geography
+Company
+Region-based patterns
+Employee Count
+Company
+Thermographic segmentation
+Annual Revenue
+Company
+For ACV normalization
+
+2. Derived Metrics Engine
+Build a backend module (Python or FastAPI preferred) to compute the following derived metrics at ingestion time:
+Metric
+Logic
+Deal Age
+Today - Create Date
+Velocity
+Close Date - Create Date (for closed deals)
+Conversion Rate
+(# Closed Won) / (# Total per segment)
+ICP Fit Signal
+Rule-based pattern match on Industry + Geo + Persona + Use Case
+Dead Zone
+Deal Age > X days + Closed Lost Reason = "No Champion" or similar
+Price Sensitivity
+Segment of lost deals with budget/pricing reasons
+
+All derived metrics must be persisted and queryable.
+3. ICP Cognition Engine (LLM + Reasoning Layer)
+This is the core cognitive module, responsible for:
+3.1 LLM-Powered Perception
+Use LLM to classify free-text Closed Lost Reason into standard buckets (e.g. Pricing, Champion, Fit, Product Gap)
+
+
+NLP summarization of qualitative data (e.g. Use Case field normalization)
+
+
+3.2 Memory Layer
+Store a semantic graph (Industry, Region, Deal Size, Persona, Use Case, Outcome)
+
+
+Backed by:
+
+
+Vector Store (e.g. ChromaDB or Weaviate) for semantic similarity
+
+
+Relational DB (PostgreSQL) for timeline and event tracking
+
+
+3.3 Reasoning Layer
+Use RAG (Retrieval-Augmented Generation) to ground LLM outputs with:
+Segment-wise win rate comparison
+
+
+Velocity deltas
+
+
+Expansion rate (if available)
+
+
+LLM Tasks:
+Generate summaries like:
+
+
+ "Fintech-EMEA-100-500 closes 22% faster with 18% higher expansion rate"
+
+
+
+Identify:
+
+
+High-fit clusters ("Rocket")
+
+
+Price-sensitive segments ("Moneybag")
+
+
+Disqualified deals ("Ice Cube")
+
+
+Churn-prone segments ("Warning")
+
+
+3.4 Execution Layer
+LLM should generate:
+
+
+Plain-language summaries for Slack/Email
+
+
+Suggested actions for RevOps/SalesOps
+
+
+Exportable ICP definitions
+
+
+
+4. API Interface Design
+Endpoint 1: GET /api/v1/insights/ICP-summary
+Returns:
+{
+  "top_segment": {
+    "industry": "Fintech",
+    "geo": "EMEA",
+    "employee_band": "100-500",
+    "win_rate": 0.31,
+    "velocity_days": 37,
+    "expansion_rate": 0.18,
+    "csat": 4.8
+  },
+  "heatmap": [...],
+  "insights": [
+    "Enterprise SaaS in NA has 78d avg velocity and 23% ACV uplift",
+    "SMB Fintech in APAC closes fast but is price sensitive"
+  ],
+  "recommendation": "+22% ARR lift by focusing on Fintech in EMEA"
+}
+
+Endpoint 2: GET /api/v1/segments/dead-zones
+Returns segments with stalled/stuck deals.
+Endpoint 3: GET /api/v1/segments/price-sensitive
+Returns segments frequently lost due to pricing.
+Endpoint 4: GET /api/v1/insights/text-summary
+Returns an LLM-generated insight summary paragraph.
+
+5. Tech Stack Requirements
+Language: Python 3.10+
+
+
+LLM: GPT-4, Mistral, or Mixtral (via Ollama or API)
+
+
+RAG: LangChain or LlamaIndex
+
+
+Vector DB: ChromaDB or Weaviate
+
+
+Relational DB: PostgreSQL
+
+
+API Framework: FastAPI
+
+
+Task Queue: Celery (for async insight generation)
+
+
+
+6. Output Format for Frontend
+Must return all results in:
+JSON for programmatic use
+
+
+Markdown or HTML block for LLM summary display
+
+
+Visual-ready segment labels:
+
+
+rocket: High-fit ICP
+
+
+ice_cube: Dead deals
+
+
+moneybag: Price-sensitive
+
+
+warning: Churn-prone
+
+
+
+7. Future Expansion (Not for MVP)
+Simulation sandbox ("What-if ICP scenarios")
+
+
+Agent layer to automatically reprioritize pipeline or create GTM briefs
+
+
+Trend detection on evolving ICP over time
+
+
+
+8. Deliverables Checklist
+ETL pipeline from HubSpot to local DB
+
+
+Metric computation module
+
+
+ICP cognition engine with RAG + LLM
+
+
+API endpoints defined above
+
+
+LLM summarizer
+
+
+Output JSON + Markdown
+
+
+Deployment via Docker + Postman collection for testing
+
+
+
+This document is definitive and intended for direct execution by an AI coding assistant or software engineer to build the SignalCTRL ICP Cognition Prototype. If clarification is needed, treat it as a spec bug to fix.
