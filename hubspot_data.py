@@ -187,7 +187,7 @@ if __name__ == "__main__":
         data_dict[item] = data
         print(f"{item}: {len(data)} records fetched")
     #138616529118
-    print(json.dumps(data_dict["contacts"], indent=4))
+    print(json.dumps(data_dict["deals"], indent=4))
     # print(data_dict["deals"][0].keys())
 
     insert_data_to_db(

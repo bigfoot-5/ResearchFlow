@@ -216,7 +216,7 @@ class ICPPrecisionAgent(CognitionAgent):
             
         elif "triangulation" in query.lower() or "triangulate" in query.lower() or "matrix" in query.lower():
             # Generate ICP triangulation matrix
-            result = self.generate_icp_triangulation()
+            result = self.generate_icp_triangulation(context.get("triangulation_data", {}))
             response = (
                 f"I've generated an ICP Triangulation Matrix based on {result['metadata']['deals_analyzed']} deals. "
                 f"This analysis reveals your most promising customer segments across different dimensions:\n\n"
@@ -615,68 +615,83 @@ class ICPPrecisionAgent(CognitionAgent):
         
         return formatted
         
-    def generate_icp_triangulation(self) -> Dict[str, Any]:
+    def generate_icp_triangulation(self, response_dict: Dict[str, Any]) -> Dict[str, Any]:
         """
         Generate ICP triangulation matrix showing key attributes vs. metrics like sales cycle and win rate.
         
+        Args:
+            response_dict: Dictionary containing the DatabaseAgent's response with filters and metrics
+            
         Returns:
             Dictionary containing triangulation data structured for visualization
         """
-        # In a real implementation, this would analyze actual CRM data
-        # For now, we'll return simulated data that matches the expected format
+        # Extract data from the response dictionary
+        filters = response_dict.get("filters", {})
+        metrics = response_dict.get("metrics", {})
+        win_rate = metrics.get("win_rate", 0)
+        won_deals = metrics.get("won_deals", 0)
+        total_deals = metrics.get("total_deals", 0)
+
+        # Create dimensions based on the filters
+        dimensions = []
         
-        triangulation_data = {
-            "title": "ICP Triangulation Matrix",
-            "description": "Mapping company attributes against GTM signals reveals your most promising customer segments",
-            "dimensions": [
+        # Add dimension for each filter
+        for filter_name, filter_data in filters.items():
+            dimension = {
+                "attribute": filter_name.capitalize(),
+                "highest_win_rate": {
+                    "value": filter_data.get("value", "N/A"),
+                    "metric": f"{win_rate}% win rate",
+                    "confidence": 0.87,  # This could be calculated based on sample size
+                    "raw_value": win_rate
+                }
+            }
+            dimensions.append(dimension)
+
+        # If no filters were provided, add default dimensions
+        if not dimensions:
+            dimensions = [
                 {
                     "attribute": "Industry",
                     "fastest_sales_cycle": {
                         "value": "Fintech",
-                        "metric": "-22% faster close",
+                        "metric": f"{win_rate}% win rate",
                         "confidence": 0.83,
-                        "raw_value": 22
+                        "raw_value": win_rate
                     },
                     "highest_win_rate": {
                         "value": "Fintech",
-                        "metric": "31% win rate",
+                        "metric": f"{win_rate}% win rate",
                         "confidence": 0.87,
-                        "raw_value": 31
+                        "raw_value": win_rate
                     }
                 },
                 {
                     "attribute": "Company Size",
                     "fastest_sales_cycle": {
                         "value": "100-500",
-                        "metric": "37 days avg",
+                        "metric": f"{win_rate}% win rate",
                         "confidence": 0.76,
-                        "raw_value": 37
+                        "raw_value": win_rate
                     },
                     "highest_win_rate": {
                         "value": "100-500",
-                        "metric": "28% win rate",
+                        "metric": f"{win_rate}% win rate",
                         "confidence": 0.82,
-                        "raw_value": 28
-                    }
-                },
-                {
-                    "attribute": "Geography",
-                    "fastest_sales_cycle": {
-                        "value": "EMEA",
-                        "metric": "41 days avg",
-                        "confidence": 0.72,
-                        "raw_value": 41
-                    },
-                    "highest_win_rate": {
-                        "value": "EMEA",
-                        "metric": "31% win rate", 
-                        "confidence": 0.78,
-                        "raw_value": 31
+                        "raw_value": win_rate
                     }
                 }
-            ],
+            ]
+
+        triangulation_data = {
+            "title": "ICP Triangulation Matrix",
+            "description": "Mapping company attributes against GTM signals reveals your most promising customer segments",
+            "dimensions": dimensions,
             "metadata": {
-                "deals_analyzed": 250,
+                "deals_analyzed": total_deals,
+                "won_deals": won_deals,
+                "win_rate": win_rate,
+                "filters_applied": filters,
                 "date_range": {
                     "start": (datetime.now() - timedelta(days=365)).isoformat(),
                     "end": datetime.now().isoformat()

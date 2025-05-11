@@ -15,9 +15,6 @@ from autogen_core import CancellationToken
 from autogen_core.model_context import UnboundedChatCompletionContext
 from autogen_core.models import AssistantMessage, RequestUsage, UserMessage
 
-class FilterGenerationAgent(BaseChatAgent):
-    def test():
-        return 0
 class DatabaseAgent(BaseChatAgent):
     def __init__(self, name: str, db_config: dict):
         super().__init__(name=name, description="Agent that queries PostgreSQL database to evaluate win rates.")
@@ -232,67 +229,3 @@ async def main():
 
 if __name__ == "__main__":
     asyncio.run(main())
-
-# import asyncio
-# from autogen import AssistantAgent, UserProxyAgent, GroupChat, GroupChatManager
-# from autogen_core.models import UserMessage
-# from autogen_ext.models.ollama import OllamaChatCompletionClient
-# from autogen_agentchat.messages import TextMessage
-
-
-# model_info = {
-#     "family": "gemma",  # or "unknown" if not supported
-#     "function_calling": False,
-#     "json_output": False,
-#     "structured_output": False,
-#     "vision": False,
-#     "multiple_system_messages": False,
-# }
-
-# async def main():
-#     ollama_model_client = OllamaChatCompletionClient(model="gemma3:1b", model_info=model_info)
-#     response = await ollama_model_client.create([TextMessage(content="What is the capital of France?", source="user")])
-#     print(response)
-#     await ollama_model_client.close()
-
-# if __name__ == "__main__":
-#     asyncio.run(main())
-
-# # --- Agent 1: Data Analyst (executes SQL queries) ---
-# analyst = AssistantAgent(
-#     name="analyst",
-#     system_message="You are a data analyst. Generate and execute SQL queries to evaluate win rates for filtered subsets of deals.",
-#     code_execution_config={"work_dir": "./"},
-# )
-# run_sql_query(analyst, db_path="hubspot_etl.db")
-
-# # --- Agent 2: Strategist (asks for insights, evaluates patterns) ---
-# strategist = AssistantAgent(
-#     name="strategist",
-#     system_message="You are a GTM strategist. Suggest possible filters that could increase deal win rate. Request SQL summaries from analyst and evaluate them.",
-# )
-
-# # --- User Proxy (goal initiator) ---
-# user = UserProxyAgent(
-#     name="user",
-#     human_input_mode="NEVER",
-#     system_message="You are a user requesting insights about why a specific deal won or lost. You can respond with questions.",
-# )
-
-# # --- Group Chat Setup ---
-# chat = GroupChat(
-#     agents=[user, analyst, strategist],
-#     messages=[],
-#     max_round=15
-# )
-
-# manager = GroupChatManager(
-#     groupchat=chat,
-#     system_message="The goal is to analyze historical HubSpot deal data and find filters that correlate with a high win rate."
-# )
-
-# # --- Start the agentic workflow ---
-# user.initiate_chat(
-#     manager,
-#     message="Ask the analyst to compute win rate for deals where amount > 50000 and country = 'United Kingdom'."
-# )

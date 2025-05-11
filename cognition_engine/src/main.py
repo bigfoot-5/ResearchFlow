@@ -2,6 +2,7 @@ import sys
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from database.hubspot_etl import load_to_db
 
 # Add project root to Python path for absolute imports
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -74,6 +75,9 @@ app.include_router(agent_endpoints.router, prefix="/api/v1", tags=["Agents"])
 
 if __name__ == "__main__":
     import uvicorn
+    # Initialize database before starting the server
+    create_db_and_tables()
+    load_to_db()
     # For development only. In production, use a proper ASGI server like Gunicorn with Uvicorn workers
     uvicorn.run(
         "src.main:app", 

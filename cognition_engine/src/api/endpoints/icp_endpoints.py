@@ -10,6 +10,10 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from datetime import datetime
 import json
+from src.agents.autogen_test import DatabaseAgent
+from autogen_agentchat.base import Response
+from autogen_core import CancellationToken
+from autogen_agentchat.messages import TextMessage
 
 from src.database.models import Company, Deal, ICPDefinition
 from src.database.database_setup import get_db
@@ -390,8 +394,11 @@ class ICPTriangulationResponse(BaseModel):
     dimensions: List[Dict[str, Any]]
     metadata: Dict[str, Any]
 
-@router.get("/triangulation", response_model=ICPTriangulationResponse)
-def get_icp_triangulation(
+from fastapi import Body
+
+@router.post("/triangulation", response_model=ICPTriangulationResponse)
+async def get_icp_triangulation(
+    filter_condition: str = Body(..., embed=True),
     agent_id: Optional[str] = Query(None, description="Agent ID to use for triangulation (if not provided, uses default ICP agent)"),
     db: Session = Depends(get_db)
 ):
@@ -401,22 +408,34 @@ def get_icp_triangulation(
     The triangulation maps dimensions (industry, company size, geography, etc.) 
     against key metrics like sales velocity and win rates.
     """
-    # Get the agent
     agent_manager = AgentManager()
-    
+
+    async def test_database_agent():
+        db_agent = DatabaseAgent(
+            name="PostgresAgent",
+            db_config={
+                "dbname": "cognition_db",
+                "user": "cognition_user",
+            },
+        )
+        filter_msg = TextMessage(content=filter_condition, source="user")
+        result = None
+        async for output in db_agent.on_messages_stream([filter_msg], CancellationToken()):
+            if isinstance(output, Response):
+                # Parse the JSON response
+                result = json.loads(output.chat_message.content)
+        return result
+
     if agent_id:
         agent = agent_manager.get_agent(agent_id)
         if not agent:
             raise HTTPException(status_code=404, detail=f"Agent with ID {agent_id} not found")
-        
-        # Check if this is an ICP agent
         if not isinstance(agent, ICPPrecisionAgent):
             raise HTTPException(status_code=400, detail="Specified agent is not an ICP analysis agent")
     else:
-        # Use default ICP agent
         agent = ICPPrecisionAgent(name="Default ICP Agent")
-    
-    # Generate triangulation data
-    triangulation_data = agent.generate_icp_triangulation()
-    
-    return triangulation_data 
+
+    # Await the async test_database_agent function
+    result = await test_database_agent()
+    triangulation_data = agent.generate_icp_triangulation(result)
+    return triangulation_data
