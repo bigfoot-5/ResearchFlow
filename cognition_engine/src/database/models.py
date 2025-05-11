@@ -19,15 +19,15 @@ class Company(Base):
     __tablename__ = "companies"
     
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    company_name = Column(String, nullable=False)
+    company_name = Column(String)
     industry = Column(String)
-    employee_count = Column(Integer)
+    numberofemployees = Column(Integer)
     annual_revenue = Column(Float)
-    founded_year = Column(Integer)
-    website = Column(String)
+    # founded_year = Column(Integer)
+    # website = Column(String)
     country = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    # created_at = Column(DateTime, default=datetime.utcnow)
+    # updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     deals = relationship("Deal", back_populates="company")
@@ -46,13 +46,13 @@ class Contact(Base):
     
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     company_id = Column(String, ForeignKey("companies.id", ondelete="CASCADE"))
-    first_name = Column(String, nullable=False)
-    last_name = Column(String, nullable=False)
-    email = Column(String)
-    phone = Column(String)
+    first_name = Column(String)
+    last_name = Column(String)
+    # email = Column(String)
+    # phone = Column(String)
     job_title = Column(String)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    # created_at = Column(DateTime, default=datetime.utcnow)
+    # updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     company = relationship("Company", back_populates="contacts")
@@ -70,12 +70,20 @@ class Deal(Base):
     
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     company_id = Column(String, ForeignKey("companies.id", ondelete="CASCADE"))
-    deal_name = Column(String, nullable=False)
+    company_name=Column(String)
+    deal_name = Column(String)
     amount = Column(Float)
-    stage = Column(String)  # e.g., "prospecting", "qualified", "closed_won", "closed_lost"
-    close_date = Column(DateTime)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    dealstage = Column(String)  # e.g., "prospecting", "qualified", "closed_won", "closed_lost"
+    closedate = Column(DateTime)
+    hs_is_closed_lost=Column(Boolean)
+    hs_is_closed_won=Column(Boolean)
+    hs_is_closed=Column(Boolean)
+    hs_analytics_source=Column(String)
+    closed_lost_reason=Column(String)
+    closed_won_reason=Column(String)
+    createdate = Column(DateTime, default=datetime.utcnow)
+    days_to_close=Column(Float)
+    # updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
     company = relationship("Company", back_populates="deals")
@@ -92,7 +100,7 @@ class ICPDefinition(Base):
     __tablename__ = "icp_definitions"
     
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    name = Column(String, nullable=False)
+    name = Column(String)
     description = Column(Text)
     criteria = Column(JSON)  # Structured ICP criteria
     confidence_score = Column(Float)
@@ -109,7 +117,7 @@ class AgentExecution(Base):
     __tablename__ = "agent_executions"
     
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    agent_id = Column(String, nullable=False)
+    agent_id = Column(String)
     agent_name = Column(String)
     query = Column(Text)
     response = Column(Text)

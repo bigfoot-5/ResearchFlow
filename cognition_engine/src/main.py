@@ -17,6 +17,7 @@ from src.api.endpoints import agent_endpoints # Import the agent_endpoints route
 from src.database.database_setup import create_db_and_tables
 
 from src.config import settings
+from src.database.hubspot_etl import load_to_db
 
 # Create FastAPI app
 app = FastAPI(
@@ -40,6 +41,7 @@ async def startup_event():
     Create database tables if they don't exist on startup
     """
     create_db_and_tables()
+    load_to_db()
 
 @app.get("/")
 async def root():

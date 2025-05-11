@@ -5,6 +5,7 @@ This module defines the configuration settings for the application.
 """
 
 from pydantic_settings import BaseSettings
+from pydantic import Field
 from dotenv import load_dotenv
 from typing import Optional
 import os
@@ -16,9 +17,10 @@ load_dotenv()
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables and .env file."""
+    DATABASE_URL: str = Field(..., env="DATABASE_URL")
     
     # Database settings
-    DATABASE_URL: str = "sqlite:///./data/cognition_engine.db"
+    # DATABASE_URL: str = "sqlite:///./data/cognition_engine.db"
     
     # LLM API settings
     OPENAI_API_KEY: Optional[str] = None  # API key for OpenAI (used by reflection agent)
