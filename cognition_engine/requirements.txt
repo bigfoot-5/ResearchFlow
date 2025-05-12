@@ -5,6 +5,7 @@ autogen
 autogen-ext[ollama]
 autogen-ext[semantic-kernel-ollama]
 autogen_agentchat
+adalflow
 # autogenstudio
 # === Database ===
 sqlalchemy>=1.4.23,<2.0.0
