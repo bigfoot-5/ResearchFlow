@@ -97,15 +97,46 @@ def list_object_properties(object_type):
 
 def get_info(item):
     props = list_object_properties(item)
-    url = f"https://api.hubapi.com/crm/v3/objects/{item}"
-    params = {
-        "properties": ",".join(props)
-    }
-    response = requests.get(url, headers=HEADERS, params=params)
+    url = f"https://api.hubapi.com/crm/v4/objects/{item}"
+    all_results = []
+    after = None
+
+    while True:
+        params = {
+            "properties": ",".join(props),
+            "limit": 100
+        }
+        if after:
+            params["after"] = after
+
+        response = requests.get(url, headers=HEADERS, params=params)
+        if response.status_code != 200:
+            raise Exception(f"Error fetching {item}: {response.status_code} - {response.text}")
+
+        data = response.json()
+        all_results.extend(data.get('results', []))
+
+        paging = data.get('paging')
+        if paging and "next" in paging:
+            after = paging["next"]["after"]
+        else:
+            break
+
+    return all_results
+def get_associated_companies(item,deal_id):
+    """
+    Retrieves all companies associated with a given deal.
+    """
+    # url = f"https://api.hubapi.com/crm/v4/objects/deals/{deal_id}/associations/companies"
+    url = f"https://api.hubapi.com/crm/v4/objects/{item}/{deal_id}/associations/companies"
+    response = requests.get(url, headers=HEADERS)
+    
     if response.status_code == 200:
-        return response.json().get('results', [])
+        associations = response.json().get('results', [])
+        company_ids = [assoc['toObjectId'] for assoc in associations]
+        return company_ids
     else:
-        raise Exception(f"Error fetching {item}: {response.status_code} - {response.text}")
+        raise Exception(f"Error fetching associations: {response.status_code} - {response.text}")
 def create_sample_contact():
     url = "https://api.hubapi.com/crm/v3/objects/contacts"
     data = {
@@ -180,21 +211,24 @@ if __name__ == "__main__":
     # deal_df = create_synthetic_dataframe(10)
     # deal_df.to_csv("synthetic_hubspot_df_basic.csv")
     # print(deal_df)
+    # deal_id = '199325317365'
+    # associated_company_ids = get_associated_companies("contacts",deal_id)
+    # print(f"Companies associated with deal {deal_id}: {associated_company_ids}")
     objects_list = ["contacts", "companies", "deals"]
     data_dict = {}
     for item in objects_list:
         data = get_info(item=item)
         data_dict[item] = data
         print(f"{item}: {len(data)} records fetched")
-    #138616529118
-    print(json.dumps(data_dict["deals"], indent=4))
-    # print(data_dict["deals"][0].keys())
+    # 138616529118
+    print(json.dumps(data_dict["contacts"][1], indent=4))
+    print(data_dict["companies"][100].keys())
 
-    insert_data_to_db(
-        contacts=data_dict["contacts"],
-        companies=data_dict["companies"],
-        deals=data_dict["deals"]
-    )
+    # insert_data_to_db(
+    #     contacts=data_dict["contacts"],
+    #     companies=data_dict["companies"],
+    #     deals=data_dict["deals"]
+    # )
 
     # print("✅ All data saved to SQLite database.")
     # predict_deal_success(data_dict["deals"])

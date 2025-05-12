@@ -19,7 +19,7 @@ from autogen_core.models import AssistantMessage, RequestUsage, UserMessage
 
 class DatabaseAgent(BaseChatAgent):
     def __init__(self, name: str, db_config: dict):
-        super().__init__(name=name, description="Agent that queries PostgreSQL database to evaluate win rates.")
+        super().__init__(name=name, description="Agent that generates data for ICP triangulation")
         self.db_config = db_config
 
     @property
