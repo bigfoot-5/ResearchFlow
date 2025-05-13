@@ -23,23 +23,23 @@ def render_icp_triangulation_matrix(backend_url: str):
     st.header("🔍 ICP Triangulation Matrix")
     st.subheader("Discover your best customer segments")
     
-    # Add filter inputs
-    st.subheader("Filter Deals")
-    col1, col2, col3 = st.columns(3)
+    # # Add filter inputs
+    # st.subheader("Filter Deals")
+    # col1, col2, col3 = st.columns(3)
     
-    with col1:
-        amount = st.number_input("Minimum Deal Amount", min_value=0, value=50000)
+    # with col1:
+    #     amount = st.number_input("Minimum Deal Amount", min_value=0, value=50000)
     
-    with col2:
-        industry = st.selectbox("Industry", ["All", "Technology", "Healthcare", "Financial Services"])
+    # with col2:
+    #     industry = st.selectbox("Industry", ["All", "Technology", "Healthcare", "Financial Services"])
         
-    with col3:
-        timeframe = st.selectbox("Timeframe", ["Last 30 Days", "Last 90 Days", "Last Year", "All Time"])
+    # with col3:
+    #     timeframe = st.selectbox("Timeframe", ["Last 30 Days", "Last 90 Days", "Last Year", "All Time"])
     
-    # Create filter condition
-    filter_condition = f"amount > {amount}"
-    if industry != "All":
-        filter_condition += f" AND industry = '{industry}'"
+    # # Create filter condition
+    # filter_condition = f"amount > {amount}"
+    # if industry != "All":
+    #     filter_condition += f" AND industry = '{industry}'"
     
     # Add a button to generate/refresh the triangulation
     if st.button("Generate ICP Triangulation"):
@@ -49,8 +49,8 @@ def render_icp_triangulation_matrix(backend_url: str):
                 response = requests.post(
                     f"{backend_url}/api/v1/icp/triangulation",
                     json={
-                        "filter_condition": filter_condition,
-                        "timeframe": timeframe
+                        "filter_condition": "amount > 0",
+                        "timeframe": "All Time"
                     }
                 )
                 
@@ -67,10 +67,10 @@ def display_triangulation_matrix(data: Dict[str, Any]):
     Display the triangulation matrix in a grid/table style matching the provided screenshot.
     """
     st.markdown(f"**Analysis based on {data['metadata']['deals_analyzed']} deals**")
-    st.markdown("**Filters Applied:**")
-    filters = data['metadata']['filters_applied']
-    for filter_name, filter_data in filters.items():
-        st.markdown(f"- {filter_name}: {filter_data['operator']} {filter_data['value']}")
+    # st.markdown("**Filters Applied:**")
+    # filters = data['metadata']['filters_applied']
+    # for filter_name, filter_data in filters.items():
+    #     st.markdown(f"- {filter_name}: {filter_data['operator']} {filter_data['value']}")
 
     # Metrics cards
     col1, col2, col3, col4 = st.columns(4)

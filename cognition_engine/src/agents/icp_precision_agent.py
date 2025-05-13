@@ -615,6 +615,10 @@ class ICPPrecisionAgent(CognitionAgent):
         
         return formatted
         
+    
+# PATCH: Replace generate_icp_triangulation in ICPPrecisionAgent
+
+# Monkey-patch or replace the method on the agent class if needed
     def generate_icp_triangulation(self, result: dict) -> dict:
         """
         Generate ICP triangulation data in a structured format.
@@ -632,89 +636,47 @@ class ICPPrecisionAgent(CognitionAgent):
             }
 
         filters = result.get("filters", {})
-        metrics = result.get("metrics", {})
+        metadata = result.get("metadata", {})
+        dimensions_data = result.get("dimensions", [])
 
-        # Extract dimensions data
         dimensions = []
 
-        # Industry
-        if "best_industry" in metrics:
-            industry = metrics["best_industry"]
+        for dim in dimensions_data:
             dimensions.append({
-                "attribute": "Industry",
+                "attribute": dim.get("attribute"),
                 "highest_win_rate": {
-                    "value": industry.get("name", "Unknown"),
-                    "metric": f"{industry.get('win_rate', 0):.1f}%",
-                    "raw_value": industry.get("win_rate", 0),
-                    "confidence": 0.85
+                    "value": dim.get("highest_win_rate", {}).get("value", "Unknown"),
+                    "metric": dim.get("highest_win_rate", {}).get("metric", "0%"),
+                    "raw_value": dim.get("highest_win_rate", {}).get("raw_value", 0),
+                    "confidence": dim.get("highest_win_rate", {}).get("confidence", 0)
                 },
                 "fastest_sales_cycle": {
-                    "value": industry.get("name", "Unknown"),
-                    "metric": f"{industry.get('avg_days_to_close', 0):.0f} days",
-                    "raw_value": industry.get("avg_days_to_close", 0),
-                    "confidence": 0.85
+                    "value": dim.get("fastest_sales_cycle", {}).get("value", "Unknown"),
+                    "metric": dim.get("fastest_sales_cycle", {}).get("metric", "0 days"),
+                    "raw_value": dim.get("fastest_sales_cycle", {}).get("raw_value", 0),
+                    "confidence": dim.get("fastest_sales_cycle", {}).get("confidence", 0)
                 }
             })
 
-        # Country
-        if "best_country" in metrics:
-            country = metrics["best_country"]
-            dimensions.append({
-                "attribute": "Geography",
-                "highest_win_rate": {
-                    "value": country.get("name", "Unknown"),
-                    "metric": f"{country.get('win_rate', 0):.1f}%",
-                    "raw_value": country.get("win_rate", 0),
-                    "confidence": 0.85
-                },
-                "fastest_sales_cycle": {
-                    "value": country.get("name", "Unknown"),
-                    "metric": f"{country.get('avg_days_to_close', 0):.0f} days",
-                    "raw_value": country.get("avg_days_to_close", 0),
-                    "confidence": 0.85
-                }
-            })
-
-        # Company Size (optional)
-        if "best_company_size" in metrics:
-            size = metrics["best_company_size"]
-            dimensions.append({
-                "attribute": "Company Size",
-                "highest_win_rate": {
-                    "value": size.get("name", "Unknown"),
-                    "metric": f"{size.get('win_rate', 0):.1f}%",
-                    "raw_value": size.get("win_rate", 0),
-                    "confidence": 0.85
-                },
-                "fastest_sales_cycle": {
-                    "value": size.get("name", "Unknown"),
-                    "metric": f"{size.get('avg_days_to_close', 0):.0f} days",
-                    "raw_value": size.get("avg_days_to_close", 0),
-                    "confidence": 0.85
-                }
-            })
-
-        # Format filters
-        filter_strs = [
-            f"{key} {v['operator']} {v['value']}" for key, v in filters.items()
-        ]
-        filter_text = ", ".join(filter_strs) if filter_strs else "No filters applied"
+        # Format filters into readable string
+        filter_strs = [f"{k} {v['operator']} {v['value']}" for k, v in filters.items()]
+        filter_text = ", ".join(filter_strs)
 
         response = {
             "title": "ICP Triangulation Analysis",
             "description": (
-                f"Analysis of {metrics.get('deals_analyzed', 0)} deals with filters: {filter_text}. "
-                f"Overall win rate: {metrics.get('win_rate', 0):.1f}%"
+                f"Analysis of {metadata.get('deals_analyzed', 0)} deals with filters: {filter_text}. "
+                f"Overall win rate: {metadata.get('win_rate', 0):.1f}%"
             ),
             "metadata": {
-                "deals_analyzed": metrics.get("deals_analyzed", 0),
-                "won_deals": metrics.get("won_deals", 0),
-                "win_rate": metrics.get("win_rate", 0),
-                "avg_deal_size": metrics.get("avg_deal_size", 0),
-                "filters_applied": filters
+                "deals_analyzed": metadata.get("deals_analyzed", 0),
+                "won_deals": metadata.get("won_deals", 0),
+                "win_rate": metadata.get("win_rate", 0),
+                "avg_deal_size": metadata.get("avg_deal_size", 0),
+                "filters_applied": metadata.get("filters_applied", {})
             },
             "dimensions": dimensions
-         }
+        }
 
         return response
         

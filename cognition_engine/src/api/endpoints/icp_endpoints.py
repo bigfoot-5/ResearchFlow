@@ -439,4 +439,5 @@ async def get_icp_triangulation(
     # Await the async test_database_agent function
     result = await test_database_agent()
     triangulation_data = agent.generate_icp_triangulation(result)
+    print(result)
     return triangulation_data

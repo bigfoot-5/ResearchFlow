@@ -42,7 +42,7 @@ async def startup_event():
     Create database tables if they don't exist on startup
     """
     create_db_and_tables()
-    load_to_db()
+    # load_to_db()
 
 @app.get("/")
 async def root():
