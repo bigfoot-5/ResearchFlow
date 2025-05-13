@@ -63,62 +63,154 @@ class DatabaseAgent(BaseChatAgent):
             conn = psycopg2.connect(**self.db_config)
             cursor = conn.cursor(cursor_factory=RealDictCursor)
 
-            # Simplified query to only use deals table
-            query_total = f"""
-                SELECT COUNT(*) 
-                FROM deals
-                WHERE {filter_condition};
+            # Join deals, contacts, companies and apply filter
+            query = f"""
+                SELECT 
+                    c.industry, 
+                    c.country,
+                    c.numberofemployees,
+                    COUNT(*) AS total,
+                    COUNT(CASE WHEN d.dealstage = 'closedwon' THEN 1 END) AS won,
+                    AVG(d.amount) as avg_deal_size,
+                    AVG(d.days_to_close) as avg_sales_cycle
+                FROM deals d
+                LEFT JOIN contacts ct ON d.company_id = ct.company_id
+                LEFT JOIN companies c ON d.company_id = c.id
+                WHERE {filter_condition}
+                GROUP BY c.industry, c.country, c.numberofemployees;
             """
-            
-            query_won = f"""
-                SELECT COUNT(*) 
-                FROM deals
-                WHERE {filter_condition} AND dealstage = 'closedwon';
-            """
-            
-            cursor.execute(query_total)
-            total = cursor.fetchone()["count"]
 
-            cursor.execute(query_won)
-            won = cursor.fetchone()["count"]
-
+            cursor.execute(query)
+            rows = cursor.fetchall()
             cursor.close()
             conn.close()
 
-            if total == 0:
+            if not rows:
                 return {
                     "status": "no_data",
                     "message": "No deals match the filter criteria.",
                     "filters": self._parse_filter_condition(filter_condition),
-                    "metrics": {
-                        "win_rate": 0,
-                        "won_deals": 0,
-                        "total_deals": 0
-                    }
+                    "metrics": {}
                 }
 
-            win_rate = (won / total) * 100
-            
+            # Calculate overall metrics
+            total_deals = sum(row["total"] for row in rows)
+            won_deals = sum(row["won"] for row in rows)
+            overall_win_rate = (won_deals / total_deals * 100) if total_deals else 0
+            avg_deal_size = sum(row["avg_deal_size"] or 0 for row in rows) / len(rows) if rows else 0
+
+            # Find best performing segments
+            best_industry = {"name": None, "win_rate": 0, "avg_sales_cycle": 0}
+            best_country = {"name": None, "win_rate": 0, "avg_sales_cycle": 0}
+            best_company_size = {"name": None, "win_rate": 0, "avg_sales_cycle": 0}
+
+            for row in rows:
+                win_rate = (row["won"] / row["total"]) * 100 if row["total"] else 0
+                avg_sales_cycle = row["avg_sales_cycle"] or 0
+
+                # Update best industry
+                if row["industry"] and win_rate > best_industry["win_rate"]:
+                    best_industry = {
+                        "name": row["industry"],
+                        "win_rate": round(win_rate, 2),
+                        "avg_sales_cycle": round(avg_sales_cycle, 1)
+                    }
+
+                # Update best country
+                if row["country"] and win_rate > best_country["win_rate"]:
+                    best_country = {
+                        "name": row["country"],
+                        "win_rate": round(win_rate, 2),
+                        "avg_sales_cycle": round(avg_sales_cycle, 1)
+                    }
+
+                # Update best company size
+                if row["numberofemployees"]:
+                    size_range = self._get_company_size_range(row["numberofemployees"])
+                    if win_rate > best_company_size["win_rate"]:
+                        best_company_size = {
+                            "name": size_range,
+                            "win_rate": round(win_rate, 2),
+                            "avg_sales_cycle": round(avg_sales_cycle, 1)
+                        }
+
             return {
                 "status": "success",
                 "filters": self._parse_filter_condition(filter_condition),
-                "metrics": {
-                    "win_rate": round(win_rate, 2),
-                    "won_deals": won,
-                    "total_deals": total
-                }
+                "metadata": {
+                    "deals_analyzed": total_deals,
+                    "won_deals": won_deals,
+                    "win_rate": round(overall_win_rate, 2),
+                    "avg_deal_size": round(avg_deal_size, 2),
+                    "filters_applied": self._parse_filter_condition(filter_condition)
+                },
+                "dimensions": [
+                    {
+                        "attribute": "Industry",
+                        "highest_win_rate": {
+                            "value": best_industry["name"] or "Unknown",
+                            "metric": f"{best_industry['win_rate']:.1f}%",
+                            "raw_value": best_industry["win_rate"],
+                            "confidence": 0.85
+                        },
+                        "fastest_sales_cycle": {
+                            "value": best_industry["name"] or "Unknown",
+                            "metric": f"{best_industry['avg_sales_cycle']:.0f} days",
+                            "raw_value": best_industry["avg_sales_cycle"],
+                            "confidence": 0.85
+                        }
+                    },
+                    {
+                        "attribute": "Geography",
+                        "highest_win_rate": {
+                            "value": best_country["name"] or "Unknown",
+                            "metric": f"{best_country['win_rate']:.1f}%",
+                            "raw_value": best_country["win_rate"],
+                            "confidence": 0.85
+                        },
+                        "fastest_sales_cycle": {
+                            "value": best_country["name"] or "Unknown",
+                            "metric": f"{best_country['avg_sales_cycle']:.0f} days",
+                            "raw_value": best_country["avg_sales_cycle"],
+                            "confidence": 0.85
+                        }
+                    },
+                    {
+                        "attribute": "Company Size",
+                        "highest_win_rate": {
+                            "value": best_company_size["name"] or "Unknown",
+                            "metric": f"{best_company_size['win_rate']:.1f}%",
+                            "raw_value": best_company_size["win_rate"],
+                            "confidence": 0.85
+                        },
+                        "fastest_sales_cycle": {
+                            "value": best_company_size["name"] or "Unknown",
+                            "metric": f"{best_company_size['avg_sales_cycle']:.0f} days",
+                            "raw_value": best_company_size["avg_sales_cycle"],
+                            "confidence": 0.85
+                        }
+                    }
+                ]
             }
+
         except Exception as e:
             return {
                 "status": "error",
                 "message": str(e),
                 "filters": self._parse_filter_condition(filter_condition),
-                "metrics": {
-                    "win_rate": 0,
-                    "won_deals": 0,
-                    "total_deals": 0
-                }
+                "metrics": {}
             }
+
+    def _get_company_size_range(self, employee_count: int) -> str:
+        """Convert employee count to a size range category."""
+        if employee_count <= 50:
+            return "1-50"
+        elif employee_count <= 200:
+            return "51-200"
+        elif employee_count <= 1000:
+            return "201-1000"
+        else:
+            return "1000+"
 
     async def on_messages_stream(
         self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
@@ -376,15 +468,70 @@ class WinRateAnalysisAgent(BaseChatAgent):
         # Implement analysis logic here
         return trends
 
-async def main():
-    orchestrator = EnhancedOrchestratorAgent()
-    message = TextMessage(content="amount > 50000", source="user")
 
-    async for output in orchestrator.on_messages_stream([message], CancellationToken()):
-        if isinstance(output, Response):
-            print("Final Output:", output.chat_message.content)
-        elif isinstance(output, TextMessage):
-            print(f"{output.source}: {output.content}")
+# --- ICP Triangulation summary function ---
+def generate_icp_triangulation(result: dict) -> str:
+    if result.get("status") != "success":
+        return f"Failed to generate ICP triangulation: {result.get('message', 'Unknown error')}"
+
+    filters = result.get("filters", {})
+    metrics = result.get("metrics", {})
+
+    def filter_value_str(info):
+        if not isinstance(info["value"], dict):
+            return str(info["value"])
+        return f"{info['value']['start']} AND {info['value']['end']}"
+
+    filter_str = " AND ".join(
+        f"{field} {info['operator']} {filter_value_str(info)}"
+        for field, info in filters.items()
+    ) or "No filters applied"
+
+    best_industry = metrics.get("best_industry", {})
+    best_country = metrics.get("best_country", {})
+    fastest_industry = metrics.get("fastest_industry", {})
+    fastest_country = metrics.get("fastest_country", {})
+
+    lines = [
+        f"ICP Triangulation based on filters: {filter_str}",
+        f"- Best Performing Industry: {best_industry.get('name')} with win rate {best_industry.get('win_rate')}%",
+        f"- Best Performing Country: {best_country.get('name')} with win rate {best_country.get('win_rate')}%",
+    ]
+
+    if fastest_industry.get("name"):
+        lines.append(f"- Fastest Sales Cycle Industry: {fastest_industry['name']} with avg close time {fastest_industry['avg_days_to_close']} days")
+    if fastest_country.get("name"):
+        lines.append(f"- Fastest Sales Cycle Country: {fastest_country['name']} with avg close time {fastest_country['avg_days_to_close']} days")
+
+    return "\n".join(lines)
+
+
+if __name__ == "__main__":
+    async def test_database_agent():
+        db_agent = DatabaseAgent(
+            name="DBAgentTest",
+            db_config={
+                "dbname": "cognition_db",
+                "user": "cognition_user",
+                # add "password", "host", "port" if needed
+            }
+        )
+        test_filter = "amount > 0"  # You can change this
+        user_msg = TextMessage(content=test_filter, source="user")
+
+        response = await db_agent.on_messages([user_msg], CancellationToken())
+        print("=== Result ===")
+        print(response.chat_message.content)
+
+        # Example usage of triangulation summary
+        try:
+            res_dict = json.loads(response.chat_message.content)
+            print("\n--- ICP Triangulation Summary ---")
+            print(generate_icp_triangulation(res_dict))
+        except Exception as e:
+            print("Error generating triangulation summary:", e)
+
+    asyncio.run(test_database_agent())
 
 template = r"""<START_OF_SYSTEM_PROMPT>
 {{system_prompt}}

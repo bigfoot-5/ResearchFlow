@@ -615,92 +615,108 @@ class ICPPrecisionAgent(CognitionAgent):
         
         return formatted
         
-    def generate_icp_triangulation(self, response_dict: Dict[str, Any]) -> Dict[str, Any]:
+    def generate_icp_triangulation(self, result: dict) -> dict:
         """
-        Generate ICP triangulation matrix showing key attributes vs. metrics like sales cycle and win rate.
+        Generate ICP triangulation data in a structured format.
         
         Args:
-            response_dict: Dictionary containing the DatabaseAgent's response with filters and metrics
+            result: Dictionary containing the analysis results
             
         Returns:
-            Dictionary containing triangulation data structured for visualization
+            Dictionary containing structured triangulation data
         """
-        # Extract data from the response dictionary
-        filters = response_dict.get("filters", {})
-        metrics = response_dict.get("metrics", {})
-        win_rate = metrics.get("win_rate", 0)
-        won_deals = metrics.get("won_deals", 0)
-        total_deals = metrics.get("total_deals", 0)
+        if result.get("status") != "success":
+            return {
+                "status": "error",
+                "message": result.get("message", "Unknown error")
+            }
 
-        # Create dimensions based on the filters
+        filters = result.get("filters", {})
+        metrics = result.get("metrics", {})
+
+        # Extract dimensions data
         dimensions = []
-        
-        # Add dimension for each filter
-        for filter_name, filter_data in filters.items():
-            dimension = {
-                "attribute": filter_name.capitalize(),
+
+        # Industry
+        if "best_industry" in metrics:
+            industry = metrics["best_industry"]
+            dimensions.append({
+                "attribute": "Industry",
                 "highest_win_rate": {
-                    "value": filter_data.get("value", "N/A"),
-                    "metric": f"{win_rate}% win rate",
-                    "confidence": 0.87,  # This could be calculated based on sample size
-                    "raw_value": win_rate
-                }
-            }
-            dimensions.append(dimension)
-
-        # If no filters were provided, add default dimensions
-        if not dimensions:
-            dimensions = [
-                {
-                    "attribute": "Industry",
-                    "fastest_sales_cycle": {
-                        "value": "Fintech",
-                        "metric": f"{win_rate}% win rate",
-                        "confidence": 0.83,
-                        "raw_value": win_rate
-                    },
-                    "highest_win_rate": {
-                        "value": "Fintech",
-                        "metric": f"{win_rate}% win rate",
-                        "confidence": 0.87,
-                        "raw_value": win_rate
-                    }
+                    "value": industry.get("name", "Unknown"),
+                    "metric": f"{industry.get('win_rate', 0):.1f}%",
+                    "raw_value": industry.get("win_rate", 0),
+                    "confidence": 0.85
                 },
-                {
-                    "attribute": "Company Size",
-                    "fastest_sales_cycle": {
-                        "value": "100-500",
-                        "metric": f"{win_rate}% win rate",
-                        "confidence": 0.76,
-                        "raw_value": win_rate
-                    },
-                    "highest_win_rate": {
-                        "value": "100-500",
-                        "metric": f"{win_rate}% win rate",
-                        "confidence": 0.82,
-                        "raw_value": win_rate
-                    }
+                "fastest_sales_cycle": {
+                    "value": industry.get("name", "Unknown"),
+                    "metric": f"{industry.get('avg_days_to_close', 0):.0f} days",
+                    "raw_value": industry.get("avg_days_to_close", 0),
+                    "confidence": 0.85
                 }
-            ]
+            })
 
-        triangulation_data = {
-            "title": "ICP Triangulation Matrix",
-            "description": "Mapping company attributes against GTM signals reveals your most promising customer segments",
-            "dimensions": dimensions,
+        # Country
+        if "best_country" in metrics:
+            country = metrics["best_country"]
+            dimensions.append({
+                "attribute": "Geography",
+                "highest_win_rate": {
+                    "value": country.get("name", "Unknown"),
+                    "metric": f"{country.get('win_rate', 0):.1f}%",
+                    "raw_value": country.get("win_rate", 0),
+                    "confidence": 0.85
+                },
+                "fastest_sales_cycle": {
+                    "value": country.get("name", "Unknown"),
+                    "metric": f"{country.get('avg_days_to_close', 0):.0f} days",
+                    "raw_value": country.get("avg_days_to_close", 0),
+                    "confidence": 0.85
+                }
+            })
+
+        # Company Size (optional)
+        if "best_company_size" in metrics:
+            size = metrics["best_company_size"]
+            dimensions.append({
+                "attribute": "Company Size",
+                "highest_win_rate": {
+                    "value": size.get("name", "Unknown"),
+                    "metric": f"{size.get('win_rate', 0):.1f}%",
+                    "raw_value": size.get("win_rate", 0),
+                    "confidence": 0.85
+                },
+                "fastest_sales_cycle": {
+                    "value": size.get("name", "Unknown"),
+                    "metric": f"{size.get('avg_days_to_close', 0):.0f} days",
+                    "raw_value": size.get("avg_days_to_close", 0),
+                    "confidence": 0.85
+                }
+            })
+
+        # Format filters
+        filter_strs = [
+            f"{key} {v['operator']} {v['value']}" for key, v in filters.items()
+        ]
+        filter_text = ", ".join(filter_strs) if filter_strs else "No filters applied"
+
+        response = {
+            "title": "ICP Triangulation Analysis",
+            "description": (
+                f"Analysis of {metrics.get('deals_analyzed', 0)} deals with filters: {filter_text}. "
+                f"Overall win rate: {metrics.get('win_rate', 0):.1f}%"
+            ),
             "metadata": {
-                "deals_analyzed": total_deals,
-                "won_deals": won_deals,
-                "win_rate": win_rate,
-                "filters_applied": filters,
-                "date_range": {
-                    "start": (datetime.now() - timedelta(days=365)).isoformat(),
-                    "end": datetime.now().isoformat()
-                },
-                "generated_at": datetime.now().isoformat()
-            }
-        }
-        
-        return triangulation_data
+                "deals_analyzed": metrics.get("deals_analyzed", 0),
+                "won_deals": metrics.get("won_deals", 0),
+                "win_rate": metrics.get("win_rate", 0),
+                "avg_deal_size": metrics.get("avg_deal_size", 0),
+                "filters_applied": filters
+            },
+            "dimensions": dimensions
+         }
+
+        return response
         
     def _calculate_triangulation_metrics(self, deals: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
