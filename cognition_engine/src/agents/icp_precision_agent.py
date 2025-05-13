@@ -618,17 +618,7 @@ class ICPPrecisionAgent(CognitionAgent):
     
 # PATCH: Replace generate_icp_triangulation in ICPPrecisionAgent
 
-# Monkey-patch or replace the method on the agent class if needed
     def generate_icp_triangulation(self, result: dict) -> dict:
-        """
-        Generate ICP triangulation data in a structured format.
-        
-        Args:
-            result: Dictionary containing the analysis results
-            
-        Returns:
-            Dictionary containing structured triangulation data
-        """
         if result.get("status") != "success":
             return {
                 "status": "error",
@@ -636,25 +626,70 @@ class ICPPrecisionAgent(CognitionAgent):
             }
 
         filters = result.get("filters", {})
-        metadata = result.get("metadata", {})
-        dimensions_data = result.get("dimensions", [])
+        metrics = result.get("metrics", {})
+        
+        # Compose metadata
+        metadata = {
+            "deals_analyzed": metrics.get("total_deals", 0),
+            "won_deals": metrics.get("won_deals", 0),
+            "win_rate": metrics.get("win_rate", 0),
+            "avg_deal_size": metrics.get("avg_deal_size", 0),
+            "filters_applied": filters
+        }
 
         dimensions = []
 
-        for dim in dimensions_data:
+        # Industry
+        if "best_industry" in metrics and "fastest_industry" in metrics:
             dimensions.append({
-                "attribute": dim.get("attribute"),
+                "attribute": "Industry",
                 "highest_win_rate": {
-                    "value": dim.get("highest_win_rate", {}).get("value", "Unknown"),
-                    "metric": dim.get("highest_win_rate", {}).get("metric", "0%"),
-                    "raw_value": dim.get("highest_win_rate", {}).get("raw_value", 0),
-                    "confidence": dim.get("highest_win_rate", {}).get("confidence", 0)
+                    "value": metrics["best_industry"].get("name", "Unknown"),
+                    "metric": f"{metrics['best_industry'].get('win_rate', 0):.1f}%",
+                    "raw_value": metrics["best_industry"].get("win_rate", 0),
+                    "confidence": 0.85
                 },
                 "fastest_sales_cycle": {
-                    "value": dim.get("fastest_sales_cycle", {}).get("value", "Unknown"),
-                    "metric": dim.get("fastest_sales_cycle", {}).get("metric", "0 days"),
-                    "raw_value": dim.get("fastest_sales_cycle", {}).get("raw_value", 0),
-                    "confidence": dim.get("fastest_sales_cycle", {}).get("confidence", 0)
+                    "value": metrics["fastest_industry"].get("name", "Unknown"),
+                    "metric": f"{metrics['fastest_industry'].get('avg_days_to_close', 0):.0f} days",
+                    "raw_value": metrics["fastest_industry"].get("avg_days_to_close", 0),
+                    "confidence": 0.85
+                }
+            })
+
+        # Country
+        if "best_country" in metrics and "fastest_country" in metrics:
+            dimensions.append({
+                "attribute": "Geography",
+                "highest_win_rate": {
+                    "value": metrics["best_country"].get("name", "Unknown"),
+                    "metric": f"{metrics['best_country'].get('win_rate', 0):.1f}%",
+                    "raw_value": metrics["best_country"].get("win_rate", 0),
+                    "confidence": 0.85
+                },
+                "fastest_sales_cycle": {
+                    "value": metrics["fastest_country"].get("name", "Unknown"),
+                    "metric": f"{metrics['fastest_country'].get('avg_days_to_close', 0):.0f} days",
+                    "raw_value": metrics["fastest_country"].get("avg_days_to_close", 0),
+                    "confidence": 0.85
+                }
+            })
+
+        # Company Size
+        if "best_company_size" in metrics and "fastest_company_size" in metrics:
+            dimensions.append({
+                "attribute": "Company Size",
+                "highest_win_rate": {
+                    "value": metrics["best_company_size"].get("name", "Unknown"),
+                    "metric": f"{metrics['best_company_size'].get('win_rate', 0):.1f}%",
+                    "raw_value": metrics["best_company_size"].get("win_rate", 0),
+                    "confidence": 0.85
+                },
+                "fastest_sales_cycle": {
+                    "value": metrics["fastest_company_size"].get("name", "Unknown"),
+                    "metric": f"{metrics['fastest_company_size'].get('avg_days_to_close', 0):.0f} days",
+                    "raw_value": metrics["fastest_company_size"].get("avg_days_to_close", 0),
+                    "confidence": 0.85
                 }
             })
 
@@ -665,16 +700,10 @@ class ICPPrecisionAgent(CognitionAgent):
         response = {
             "title": "ICP Triangulation Analysis",
             "description": (
-                f"Analysis of {metadata.get('deals_analyzed', 0)} deals with filters: {filter_text}. "
-                f"Overall win rate: {metadata.get('win_rate', 0):.1f}%"
+                f"Analysis of {metadata['deals_analyzed']} deals with filters: {filter_text}. "
+                f"Overall win rate: {metadata['win_rate']:.1f}%"
             ),
-            "metadata": {
-                "deals_analyzed": metadata.get("deals_analyzed", 0),
-                "won_deals": metadata.get("won_deals", 0),
-                "win_rate": metadata.get("win_rate", 0),
-                "avg_deal_size": metadata.get("avg_deal_size", 0),
-                "filters_applied": metadata.get("filters_applied", {})
-            },
+            "metadata": metadata,
             "dimensions": dimensions
         }
 
