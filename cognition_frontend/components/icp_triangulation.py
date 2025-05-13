@@ -85,7 +85,16 @@ def display_triangulation_matrix(data: Dict[str, Any]):
 
     # --- Triangulation Matrix Table ---
     st.subheader("Dimension Analysis Matrix")
-    display_triangulation_grid(data['dimensions'])
+    # Display as DataFrame
+    df_rows = []
+    for dim in data['dimensions']:
+        df_rows.append({
+            "Attribute": dim["attribute"],
+            "Fastest Sales Cycle": f"{dim['fastest_sales_cycle']['value']} ({dim['fastest_sales_cycle']['metric']})",
+            "Highest Win Rate": f"{dim['highest_win_rate']['value']} ({dim['highest_win_rate']['metric']})"
+        })
+    df = pd.DataFrame(df_rows)
+    st.dataframe(df)
 
     # Add visualization if plotly is available
     if PLOTLY_AVAILABLE:
