@@ -40,29 +40,37 @@ def render_icp_triangulation_matrix(backend_url: str):
     # filter_condition = f"amount > {amount}"
     # if industry != "All":
     #     filter_condition += f" AND industry = '{industry}'"
+    # Re-display triangulation if it already exists in session state
+    if "triangulation_data" in st.session_state:
+        display_triangulation_matrix(st.session_state.triangulation_data, backend_url)
     
     # Add a button to generate/refresh the triangulation
-    if st.button("Generate ICP Triangulation"):
-        with st.spinner("Analyzing deal data to generate triangulation matrix..."):
-            try:
-                # Make request to backend with filter condition
-                response = requests.post(
-                    f"{backend_url}/api/v1/icp/triangulation",
-                    json={
-                        "filter_condition": "amount > 0",
-                        "timeframe": "All Time"
-                    }
-                )
-                
-                if response.status_code == 200:
-                    triangulation_data = response.json()
-                    display_triangulation_matrix(triangulation_data)
-                else:
-                    st.error(f"Error generating triangulation data: {response.text}")
-            except Exception as e:
-                st.error(f"Error connecting to backend: {str(e)}")
+    else:
+        if st.button("Generate ICP Triangulation"):
+            with st.spinner("Analyzing deal data to generate triangulation matrix..."):
+                try:
+                    # Make request to backend with filter condition
+                    response = requests.post(
+                        f"{backend_url}/api/v1/icp/triangulation",
+                        json={
+                            "filter_condition": "amount > 0",
+                            "timeframe": "All Time"
+                        }
+                    )
+                    
+                    if response.status_code == 200:
+                        triangulation_data = response.json()
+                        st.session_state.triangulation_data = triangulation_data
+                        display_triangulation_matrix(triangulation_data, backend_url)
+                    else:
+                        st.error(f"Error generating triangulation data: {response.text}")
+                except Exception as e:
+                    st.error(f"Error connecting to backend: {str(e)}")
 
-def display_triangulation_matrix(data: Dict[str, Any]):
+
+def display_triangulation_matrix(data: Dict[str, Any], backend_url: str):
+# def display_triangulation_matrix(backend_url: str):
+    # data = {'status': 'success', 'filters': {'amount': {'operator': '>', 'value': '0'}}, 'metrics': {'win_rate': 28.71, 'won_deals': 58, 'total_deals': 202, 'avg_deal_size': 78663.35, 'best_industry': {'name': 'INFORMATION_TECHNOLOGY_AND_SERVICES', 'win_rate': 44.44, 'avg_sales_cycle': 39.8}, 'fastest_industry': {'name': 'PHARMACEUTICALS', 'avg_days_to_close': 35.8}, 'best_country': {'name': 'United States', 'win_rate': 50.0, 'avg_sales_cycle': 40.6}, 'fastest_country': {'name': 'United States', 'avg_days_to_close': 40.6}, 'best_company_size': {'name': '1000+', 'win_rate': 35.09, 'avg_sales_cycle': 43.0}, 'fastest_company_size': {'name': '1-50', 'avg_days_to_close': 40.8}}}
     """
     Display the triangulation matrix in a grid/table style matching the provided screenshot.
     """
@@ -123,22 +131,27 @@ def display_triangulation_matrix(data: Dict[str, Any]):
         placeholder="Example: Why is this segment performing better?"
     )
     
-    if st.button("Get Answer"):
-        if question:
-            with st.spinner("Analyzing..."):
-                try:
-                    response = requests.post(
-                        f"{st.session_state.backend_url}/api/v1/icp/analyze",
-                        json={"question": question, "data": data}
-                    )
-                    if response.status_code == 200:
-                        st.markdown(response.json()["response"])
-                    else:
-                        st.error("Error getting answer")
-                except Exception as e:
-                    st.error(f"Error: {str(e)}")
-        else:
-            st.warning("Please enter a question")
+    if st.button("Get Answer") or question:
+        # if question:
+        with st.spinner("Analyzing..."):
+            try:
+                response = requests.post(
+                    f"{backend_url}/api/v1/agents/analyze",
+                    json={
+                        "query": question,
+                        "data_type": "triangulation",
+                        "data": data,
+                        "additional_context": {}
+                    }
+                )
+                if response.status_code == 200:
+                    st.markdown(response.json()["response"])
+                else:
+                    st.error("Error getting answer")
+            except Exception as e:
+                st.error(f"Error: {str(e)}")
+    else:
+        st.warning("Please enter a question")
 
 def display_triangulation_grid(dimensions: List[Dict[str, Any]]):
     """
@@ -293,4 +306,4 @@ def display_insights(data: Dict[str, Any]):
     2. Develop targeted messaging for each high-performing segment
     3. Consider adjusting pricing or packaging for segments with longer sales cycles
     4. Invest in case studies and testimonials from top-performing segments
-    """) 
+    """)

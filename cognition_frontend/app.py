@@ -6,7 +6,8 @@ import time
 from datetime import datetime
 
 from components.agent_workbench import render_agent_workbench
-from components.icp_triangulation import render_icp_triangulation_matrix
+from components.icp_triangulation import render_icp_triangulation_matrix, display_triangulation_matrix
+
 
 # --- Configuration ---
 BACKEND_URL = "http://localhost:8005"  # Updated to match backend port
@@ -420,5 +421,6 @@ elif selected_feature == "Agent Workbench":
 elif selected_feature == "ICP Triangulation Matrix":
     # Render the ICP Triangulation Matrix
     render_icp_triangulation_matrix(BACKEND_URL)
+    # display_triangulation_matrix(BACKEND_URL)
 
 # You can add more sections or refine the layout further. 
