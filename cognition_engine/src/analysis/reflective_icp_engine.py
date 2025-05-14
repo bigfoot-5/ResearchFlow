@@ -8,6 +8,9 @@ through self-criticism and improvement.
 import logging
 import time
 from typing import Dict, List, Optional, Any, Union
+import openai
+import json
+from openai import OpenAI
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -138,124 +141,12 @@ class ReflectiveICPEngine:
         logger.info(f"Starting analysis for question: {question}")
         categories = categories or ["general_analysis"]
         
-        # Extract relevant data
-        dimensions_data = data.get("dimensions_data", [])
-        deals_analyzed = data.get("deals_analyzed", 0)
-        
-        # Initialize insights structure
-        insights = {
-            "main_insight": "",
-            "supporting_points": [],
-            "recommendations": [],
-            "trends": [],
-            "data_summary": {}
-        }
-        
-        # Generate initial insights based on question categories
-        if "targeting" in categories:
-            industry_dimension = next((dim for dim in dimensions_data if dim["attribute"] == "Industry"), None)
-            if industry_dimension:
-                # For industry targeting questions
-                top_industry = industry_dimension["highest_win_rate"]["value"]
-                win_rate = industry_dimension["highest_win_rate"]["metric"]
-                cycle_rate = industry_dimension["fastest_sales_cycle"]["metric"]
-                
-                insights["main_insight"] = f"Based on our analysis of {deals_analyzed} deals, {top_industry} represents your strongest industry segment with {win_rate} and {cycle_rate}."
-                
-                # Check if question is about other industries to target
-                if "other" in question.lower() or "additional" in question.lower():
-                    insights["main_insight"] = f"While {top_industry} is your strongest performer, our analysis indicates several other promising industries that align with your ideal customer profile."
-                    
-                    insights["supporting_points"] = [
-                        f"{top_industry} remains your benchmark with {win_rate} and {cycle_rate}.",
-                        "Healthcare shows potential with similarities in buying patterns to your top performer.",
-                        "Manufacturing segments, particularly those undergoing digital transformation, demonstrate compatible characteristics.",
-                        "Professional services firms with 100-500 employees show promising indicators."
-                    ]
-                    
-                    insights["recommendations"] = [
-                        "Develop vertical-specific messaging for Healthcare and Manufacturing.",
-                        "Create targeted campaigns addressing digital transformation pain points.",
-                        "Consider pilot programs in these adjacent industries to validate expansion strategy.",
-                        "Leverage existing customer success stories that have crossover appeal to these industries."
-                    ]
-                else:
-                    insights["supporting_points"] = [
-                        f"{top_industry} customers convert at a significantly higher rate than other industries.",
-                        "The sales cycle is notably shorter, indicating strong product-market fit.",
-                        "Average deal sizes tend to be higher in this segment.",
-                        "Customer satisfaction and retention metrics also show stronger performance."
-                    ]
-                    
-                    insights["recommendations"] = [
-                        f"Increase marketing and sales resources allocated to the {top_industry} vertical.",
-                        "Develop specialized messaging and case studies for this industry.",
-                        "Consider product enhancements that address specific {top_industry} pain points.",
-                        "Implement targeted account-based marketing for top prospects in this industry."
-                    ]
-            else:
-                insights["main_insight"] = "We don't have sufficient industry-specific data in the current dataset to provide targeting recommendations."
-                
-        elif "performance_analysis" in categories:
-            # For questions about why certain segments perform better
-            for dimension in dimensions_data:
-                if dimension["attribute"] == "Industry" and "fintech" in question.lower():
-                    insights["main_insight"] = f"Fintech is outperforming other industries with {dimension['highest_win_rate']['metric']} and {dimension['fastest_sales_cycle']['metric']} due to several key market factors and alignment characteristics."
-                    
-                    insights["supporting_points"] = [
-                        "Market Dynamics: Fintech is experiencing rapid digital transformation, creating urgent needs for solutions.",
-                        "Decision-Making Process: Fintech companies typically have more streamlined procurement processes with fewer stakeholders.",
-                        "Value Proposition Fit: Our solution likely addresses critical pain points specific to the fintech space.",
-                        "Budget Allocation: Fintech firms typically allocate larger technology budgets as a percentage of revenue.",
-                        "Technical Alignment: The technical sophistication of fintech buyers means less education is needed during the sales process."
-                    ]
-                    
-                    insights["recommendations"] = [
-                        "Develop fintech-specific messaging highlighting ROI in compliance and security.",
-                        "Create case studies showcasing successful implementations in this vertical.",
-                        "Consider dedicating specialized sales resources to this high-performing segment."
-                    ]
-                    
-                elif dimension["attribute"] == "Company Size" and "company size" in question.lower():
-                    size_value = dimension["highest_win_rate"]["value"]
-                    insights["main_insight"] = f"Companies with {size_value} employees perform better due to organizational structure and budget alignment factors."
-                    
-                    insights["supporting_points"] = [
-                        f"{size_value} companies typically have the right balance of budget flexibility and established processes.",
-                        "These organizations have clear decision-making structures without excessive bureaucracy.",
-                        "They often have sufficient pain points to justify the investment while still being agile enough to implement quickly."
-                    ]
-                    
-                elif dimension["attribute"] == "Geography" and "geography" in question.lower():
-                    geo_value = dimension["highest_win_rate"]["value"]
-                    insights["main_insight"] = f"The {geo_value} region shows stronger performance due to market maturity and regional business practices."
-                    
-                    insights["supporting_points"] = [
-                        f"{geo_value} businesses may have higher digital transformation priorities.",
-                        "Regional compliance requirements might make your solution particularly valuable in this market.",
-                        "Cultural and business practice differences can impact sales cycles and decision processes."
-                    ]
-        else:
-            # Default general analysis
-            top_segments = []
-            
-            for dimension in dimensions_data:
-                top_segments.append(f"{dimension['attribute']}: {dimension['highest_win_rate']['value']} ({dimension['highest_win_rate']['metric']})")
-                
-            top_segments_text = ", ".join(top_segments)
-            
-            insights["main_insight"] = f"Based on our analysis of {deals_analyzed} deals, your top performing segments are: {top_segments_text}."
-            
-            insights["supporting_points"] = [
-                "These segments show significantly higher conversion rates and shorter sales cycles.",
-                "Your value proposition appears to resonate strongly with these customer types.",
-                "Consider focusing your go-to-market strategy on these key segments."
-            ]
-        
+        # Generate insights using LLM-based dynamic generation
+        insights = self._generate_insights_with_llm(question, data)
+
         # Apply reflection to enhance the insights if requested
         if reflection_steps > 0:
             # Convert insights to string format for reflection
-            import json
             insights_text = json.dumps(insights, indent=2)
             
             # Apply reflection
@@ -280,6 +171,48 @@ class ReflectiveICPEngine:
             logger.info(f"Applied {reflection_steps} reflection steps to enhance analysis insights")
         
         return insights
+
+    def _generate_insights_with_llm(self, question: str, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Use OpenAI's GPT model to dynamically generate insights.
+        """
+        client = OpenAI()
+
+        prompt = f"""
+You are a CRM data analyst. Analyze the following ICP triangulation data and answer the user's question with insights, trends, and strategic recommendations.
+
+Question: {question}
+
+Data:
+{json.dumps(data, indent=2)}
+
+Respond in JSON format with fields:
+- main_insight: str
+- supporting_points: list of strings
+- recommendations: list of strings
+- trends: list of strings
+        """
+
+        response = client.responses.create(
+            model="gpt-4",
+            input=[
+                {"role": "system", "content": "You are a helpful CRM data analyst."},
+                {"role": "user", "content": prompt}
+            ],
+            temperature=0.7
+        )
+        print(f"The response is \n {response}")
+        text_response = response.output_text
+        try:
+            return json.loads(text_response)
+        except json.JSONDecodeError:
+            return {
+                "main_insight": text_response,
+                "supporting_points": [],
+                "recommendations": [],
+                "trends": [],
+                "error": "Could not parse response as JSON."
+            }
     
     def generate_icp_definition(self, data: Dict[str, Any], reflection_steps: int = 1) -> Dict[str, Any]:
         """
