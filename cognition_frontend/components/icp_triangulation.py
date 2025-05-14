@@ -140,7 +140,7 @@ def display_triangulation_matrix(data: Dict[str, Any], backend_url: str):
                     json={
                         "query": question,
                         # "data_type": "triangulation",
-                        "data_type" : "icp_triangulation",
+                        # "data_type" : "icp_triangulation",
                         "data": data,
                         "additional_context": {}
                     }

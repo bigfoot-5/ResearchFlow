@@ -8,6 +8,8 @@ from typing import Dict, List, Optional, Any
 import uuid
 from datetime import datetime
 import time
+from src.agents.autogen_reasoning import run_pipeline
+import asyncio
 
 from fastapi import APIRouter, Depends, HTTPException, Body, Query, Path, BackgroundTasks
 from pydantic import BaseModel, Field
@@ -66,7 +68,7 @@ class AgentExecuteResponse(BaseModel):
 class AnalyzeDataRequest(BaseModel):
     """Request model for analyzing specific data with follow-up questions."""
     query: str
-    data_type: str  # e.g., "triangulation", "icp_definition", etc.
+    # data_type: str  # e.g., "triangulation", "icp_definition", etc.
     data: Dict[str, Any]  # The data to be analyzed
     additional_context: Optional[Dict[str, Any]] = {}
 
@@ -109,90 +111,101 @@ async def create_agent(agent_data: AgentCreate):
         raise HTTPException(status_code=500, detail=f"Error creating agent: {str(e)}")
 
 @router.post("/analyze", response_model=AnalyzeDataResponse)
+
 async def analyze_data(
     request: AnalyzeDataRequest,
     db: Session = Depends(get_db)
 ):
-    """
-    Analyze specific data (like triangulation matrix) with a follow-up question.
-    
-    This endpoint handles follow-up questions about specific data structures,
-    providing more contextual responses based on the provided data.
-    """
-    start_time = time.time()
-    
-    # Select the appropriate agent based on data_type
-    if request.data_type in ["triangulation", "icp_triangulation", "triangulation_matrix"]:
-        # Create a specialized system prompt for triangulation data analysis
-        triangulation_system_prompt = (
-            "You are an expert CRM data analyst specializing in Ideal Customer Profile (ICP) triangulation analysis. "
-            "When analyzing triangulation data, you should provide deep, thoughtful insights about WHY certain "
-            "segments outperform others by considering these factors:\n"
-            "1. MARKET DYNAMICS: Explain industry-specific factors that might contribute to performance differences\n"
-            "2. BUYING PROCESS: Analyze how decision-making processes differ across segments\n"
-            "3. VALUE PROPOSITION FIT: Explain why your product/service likely resonates better with top segments\n"
-            "4. COMPETITIVE LANDSCAPE: Consider competitive differences across segments\n"
-            "5. HIDDEN CORRELATIONS: Look for relationships between dimensions (e.g., industry + company size)\n\n"
-            "Your analysis should be insightful, data-driven, and provide specific actionable recommendations. "
-            "Go beyond surface-level observations to explain underlying factors and business implications. "
-            "When asked about why a segment performs better, don't just restate the metrics - explain the business "
-            "and market dynamics that likely drive these differences."
-        )
-        
-        # Use an ICP agent for triangulation data with enhanced system prompt
-        agent = ICPPrecisionAgent(
-            name="Data Analysis Agent",
-            system_prompt=triangulation_system_prompt
-        )
-        
-        # Build a context that includes the data
-        context = {
-            "data_type": request.data_type,
-            "triangulation_data": request.data,
-            **request.additional_context
-        }
-    else:
-        # Default agent for other data types
-        agent = CognitionAgent(name="Data Analysis Agent")
-        context = {
-            "data_type": request.data_type,
-            "analysis_data": request.data,
-            **request.additional_context
-        }
-    
-    # Construct a prompt that includes information about the data type
-    query = f"Analyze this {request.data_type} data and answer: {request.query}"
-    
-    # Execute the agent
+    print("Entered pipeline function")
     try:
-        result = agent.execute(query=query, context=context)
-        
-        # Log the execution
-        execution = AgentExecution(
-            agent_id=agent.agent_id,
-            query=query,
-            response=result.get("response", ""),
-            reflection_enabled=agent.reflection_enabled,
-            reflection_steps=agent.reflection_steps if agent.reflection_enabled else 0,
-            meta_data={"data_type": request.data_type, "analysis_request": True}
-        )
-        db.add(execution)
-        db.commit()
-        
-        execution_time = time.time() - start_time
-        
+        result = await run_pipeline(question=request.query, data = request.data)
         return {
-            "response": result.get("response", "No analysis generated"),
-            "metadata": {
-                "execution_time": f"{execution_time:.2f} seconds",
-                "agent_id": agent.agent_id,
-                "reflection_applied": agent.reflection_enabled,
-                "data_type": request.data_type
-            }
+            "response": result,
+            "metadata": {} 
         }
     except Exception as e:
         logger.error(f"Error analyzing data: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error analyzing data: {str(e)}")
+#     """
+#     Analyze specific data (like triangulation matrix) with a follow-up question.
+    
+#     This endpoint handles follow-up questions about specific data structures,
+#     providing more contextual responses based on the provided data.
+#     """
+#     start_time = time.time()
+    
+#     # Select the appropriate agent based on data_type
+#     if request.data_type in ["triangulation", "icp_triangulation", "triangulation_matrix"]:
+#         # Create a specialized system prompt for triangulation data analysis
+#         triangulation_system_prompt = (
+#             "You are an expert CRM data analyst specializing in Ideal Customer Profile (ICP) triangulation analysis. "
+#             "When analyzing triangulation data, you should provide deep, thoughtful insights about WHY certain "
+#             "segments outperform others by considering these factors:\n"
+#             "1. MARKET DYNAMICS: Explain industry-specific factors that might contribute to performance differences\n"
+#             "2. BUYING PROCESS: Analyze how decision-making processes differ across segments\n"
+#             "3. VALUE PROPOSITION FIT: Explain why your product/service likely resonates better with top segments\n"
+#             "4. COMPETITIVE LANDSCAPE: Consider competitive differences across segments\n"
+#             "5. HIDDEN CORRELATIONS: Look for relationships between dimensions (e.g., industry + company size)\n\n"
+#             "Your analysis should be insightful, data-driven, and provide specific actionable recommendations. "
+#             "Go beyond surface-level observations to explain underlying factors and business implications. "
+#             "When asked about why a segment performs better, don't just restate the metrics - explain the business "
+#             "and market dynamics that likely drive these differences."
+#         )
+        
+#         # Use an ICP agent for triangulation data with enhanced system prompt
+#         agent = ICPPrecisionAgent(
+#             name="Data Analysis Agent",
+#             system_prompt=triangulation_system_prompt
+#         )
+        
+#         # Build a context that includes the data
+#         context = {
+#             "data_type": request.data_type,
+#             "triangulation_data": request.data,
+#             **request.additional_context
+#         }
+#     else:
+#         # Default agent for other data types
+#         agent = CognitionAgent(name="Data Analysis Agent")
+#         context = {
+#             "data_type": request.data_type,
+#             "analysis_data": request.data,
+#             **request.additional_context
+#         }
+    
+#     # Construct a prompt that includes information about the data type
+#     query = f"Analyze this {request.data_type} data and answer: {request.query}"
+    
+#     # Execute the agent
+#     try:
+#         result = agent.execute(query=query, context=context)
+        
+#         # Log the execution
+#         execution = AgentExecution(
+#             agent_id=agent.agent_id,
+#             query=query,
+#             response=result.get("response", ""),
+#             reflection_enabled=agent.reflection_enabled,
+#             reflection_steps=agent.reflection_steps if agent.reflection_enabled else 0,
+#             meta_data={"data_type": request.data_type, "analysis_request": True}
+#         )
+#         db.add(execution)
+#         db.commit()
+        
+#         execution_time = time.time() - start_time
+        
+#         return {
+#             "response": result.get("response", "No analysis generated"),
+#             "metadata": {
+#                 "execution_time": f"{execution_time:.2f} seconds",
+#                 "agent_id": agent.agent_id,
+#                 "reflection_applied": agent.reflection_enabled,
+#                 "data_type": request.data_type
+#             }
+#         }
+#     except Exception as e:
+#         logger.error(f"Error analyzing data: {str(e)}")
+#         raise HTTPException(status_code=500, detail=f"Error analyzing data: {str(e)}")
 
 @router.get("/", response_model=List[AgentResponse])
 async def list_agents():

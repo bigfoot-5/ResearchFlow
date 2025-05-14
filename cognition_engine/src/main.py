@@ -77,7 +77,7 @@ if __name__ == "__main__":
     import uvicorn
     # Initialize database before starting the server
     create_db_and_tables()
-    load_to_db()
+    # load_to_db()
     # For development only. In production, use a proper ASGI server like Gunicorn with Uvicorn workers
     uvicorn.run(
         "src.main:app", 
