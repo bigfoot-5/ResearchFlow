@@ -1,0 +1,10 @@
+version: 2
+
+sources:
+  - name: hubspot_data
+    database: cognition_db
+    schema: public
+    tables:
+      - name: companies
+      - name: contacts
+      - name: deals

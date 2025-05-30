@@ -6,6 +6,9 @@ autogen-ext[ollama]
 autogen-ext[semantic-kernel-ollama]
 autogen_agentchat
 adalflow
+dbt-core
+dbt-postgres
+ollama
 # autogenstudio
 # === Database ===
 sqlalchemy>=1.4.23,<2.0.0
@@ -17,7 +20,10 @@ psycopg2
 langchain-core==0.3.57
 langchain-ollama>=0.3.2
 langsmith>=0.1.125,<0.4
-chromadb>=0.4.0
+langchain-chroma
+langchain_community
+langchain
+chromadb
 sentence-transformers>=2.2.0
 
 # === Utilities ===

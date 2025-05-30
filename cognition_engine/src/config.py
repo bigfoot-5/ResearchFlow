@@ -27,7 +27,9 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     OLLAMA_MODEL: str = "gemma3:1b"
     OLLAMA_HOST: Optional[str] = None
-    HUBSPOT_API_KEY: Optional[str] = None  # Default model, can be overridden by .env
+    HUBSPOT_API_KEY: Optional[str] = None 
+    GONG_ACCESS_KEY: Optional[str] = None 
+    GONG_ACCESS_SECRET: Optional[str] = None  # Default model, can be overridden by .env
     
     # Application settings
     ENABLE_REFLECTION: bool = True

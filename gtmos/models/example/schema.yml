@@ -1,0 +1,109 @@
+
+version: 2
+
+models:
+  - name: my_first_dbt_model
+    description: "A starter dbt model"
+    columns:
+      - name: id
+        description: "The primary key for this table"
+        data_tests:
+          - unique
+          - not_null
+
+  - name: my_second_dbt_model
+    description: "A starter dbt model"
+    columns:
+      - name: id
+        description: "The primary key for this table"
+        data_tests:
+          - unique
+          - not_null
+
+  - name: dim_companies
+    config:
+      contract: {enforced: true}
+    description: "A model to store companies information"
+    columns:
+      - name: company_id
+        data_type: bigint
+        data_tests:
+          - unique
+          - not_null
+        constraints:
+          - type: not_null
+          - type: primary_key
+      - name: industry
+        data_type: string
+      - name: numberofemployees
+        data_type: bigint
+
+  - name: dim_contacts
+    config:
+      contract: {enforced: true}
+    description: "A model to store contacts information"
+    columns:
+      - name: id
+        data_type: bigint
+        data_tests:
+          - unique
+          - not_null
+        constraints:
+          - type: not_null
+          - type: primary_key
+      - name: company_id
+        data_type: bigint
+        constraints:
+          - type: foreign_key
+            expression: "{{ target.schema }}.dim_companies (company_id)"
+      - name: first_name
+        data_type: string
+      - name: last_name
+        data_type: string
+      - name: job_title
+        data_type: string
+
+  - name: dim_deals
+    config:
+      contract: {enforced: true}
+    description: "A model to store deals information"
+    columns:
+      - name: id
+        data_type: bigint
+        data_tests:
+          - unique
+          - not_null
+        constraints:
+          - type: not_null
+          - type: primary_key
+      - name: company_id
+        data_type: bigint
+        constraints:
+          - type: foreign_key
+            expression: "{{ target.schema }}.dim_companies (company_id)"
+      - name: company_name
+        data_type: string
+      - name: deal_name
+        data_type: string
+      - name: amount
+        data_type: float
+      - name: dealstage
+        data_type: string
+      - name: closedate
+        data_type: timestamp
+      - name: hs_is_closed_lost
+        data_type: boolean
+      - name: hs_is_closed
+        data_type: boolean
+      - name: hs_is_closed_won
+        data_type: boolean
+      - name: hs_analytics_source
+        data_type: string
+      - name: closed_lost_reason
+        data_type: string
+      - name: closed_won_reason
+        data_type: string
+      - name: createdate
+        data_type: timestamp
+      - name: days_to_close
+        data_type: float

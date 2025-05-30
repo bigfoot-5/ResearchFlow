@@ -7,6 +7,10 @@ from datetime import datetime
 
 from components.agent_workbench import render_agent_workbench
 from components.icp_triangulation import render_icp_triangulation_matrix, display_triangulation_matrix
+from components.icp_segmentation_agent import (
+    run_postgres_query,
+    ask_agents
+)
 
 
 # --- Configuration ---
@@ -121,8 +125,9 @@ selected_feature = st.sidebar.radio(
         "Deal Pattern Insights",
         "Vector Search Insights",
         "Live CRM Search",
-        "Agent Workbench",  # New option for Agent functionality
-        "ICP Triangulation Matrix"  # New option for ICP Triangulation Matrix
+        "Agent Workbench",
+        "ICP Triangulation Matrix",
+        "ICP Segmentation"  # ✅ New Feature
     ],
     captions=[
         "AI-Generated ICP Definition",
@@ -130,8 +135,9 @@ selected_feature = st.sidebar.radio(
         "LLM Analysis of Deals",
         "Semantic Search Patterns",
         "Search CRM Data",
-        "Create & Run AI Agents",  # Caption for Agent Workbench
-        "ICP Triangulation Matrix"  # Caption for ICP Triangulation Matrix
+        "Create & Run AI Agents",
+        "ICP Triangulation Matrix",
+        "Segment Customers by ICP Fit"  # ✅ Caption for new feature
     ]
 )
 
@@ -423,4 +429,102 @@ elif selected_feature == "ICP Triangulation Matrix":
     render_icp_triangulation_matrix(BACKEND_URL)
     # display_triangulation_matrix(BACKEND_URL)
 
-# You can add more sections or refine the layout further. 
+
+
+elif selected_feature == "ICP Segmentation":
+    st.header("📊 ICP Segmentation")
+    st.write("Explore segmentation metrics across dimensions. Ask follow-up questions for deeper insights.")
+
+    # Define queries for each segment
+    queries = {
+        "Geo + Size": "SELECT * FROM metrics_by_geo_size LIMIT 10;",
+        "Industry + Geo": "SELECT * FROM metrics_by_industry_geo LIMIT 10;",
+        "Industry + Size": "SELECT * FROM metrics_by_industry_size LIMIT 10;",
+        "Geo + Size + Industry": "SELECT * FROM metrics_by_industry_geo_size LIMIT 10;"
+    }
+
+    # Display each table
+    for name, query in queries.items():
+        with st.expander(f"📁 {name} Segmentation"):
+            with st.spinner(f"Querying {name}..."):
+                try:
+                    # Use the imported function directly
+                    rows = run_postgres_query(query)
+                    
+                    if isinstance(rows, dict) and "error" in rows:
+                        st.error(f"Database error: {rows['error']}")
+                    else:
+                        df = pd.DataFrame(rows)
+                        st.dataframe(df, use_container_width=True)
+                except Exception as e:
+                    st.error(f"Error executing query: {str(e)}")
+
+    # Follow-up natural language input
+    st.markdown("---")
+    st.subheader("🔍 Ask a follow-up question")
+    user_question = st.text_input("Enter a business question to analyze the segments further:")
+
+    if user_question:
+        with st.spinner("Gathering insights from all segments..."):
+            # Use the new ask_agents function that properly initializes the chat
+            chat_result = ask_agents(user_question)
+            
+            # Extract content from the ChatResult object
+            response_text = ""
+            
+            try:
+                # Method 1: Check if there's a summary
+                if hasattr(chat_result, 'summary') and chat_result.summary:
+                    response_text = chat_result.summary
+                
+                # Method 2: Get the chat history
+                elif hasattr(chat_result, 'chat_history') and chat_result.chat_history:
+                    messages = chat_result.chat_history
+                    
+                    # Find the last meaningful message from an agent (not user)
+                    for message in reversed(messages):
+                        content = message.get('content', '').strip()
+                        role = message.get('role', '')
+                        name = message.get('name', '')
+                        
+                        # Look for assistant/agent responses that are substantial
+                        if (content and 
+                            role in ['assistant'] and 
+                            len(content) > 50 and  # Meaningful length
+                            not content.startswith('I need to') and
+                            'run_postgres_query' not in content):
+                            response_text = content
+                            break
+                
+                # Method 3: Try to get the last message directly
+                elif hasattr(chat_result, 'last_message') and chat_result.last_message:
+                    if isinstance(chat_result.last_message, dict):
+                        response_text = chat_result.last_message.get('content', '')
+                    else:
+                        response_text = str(chat_result.last_message)
+                
+                # Method 4: Check cost and summary
+                elif hasattr(chat_result, 'cost') and hasattr(chat_result, 'summary'):
+                    # If there's cost, it means the chat ran, so try to extract any meaningful output
+                    response_text = getattr(chat_result, 'summary', '') or str(chat_result)
+                
+            except Exception as e:
+                st.error(f"Error extracting response: {str(e)}")
+                response_text = "Unable to extract response from the agent."
+            
+            # Display the response
+            if response_text and response_text.strip():
+                st.markdown("#### 💡 Insight")
+                st.write(response_text)
+            else:
+                st.warning("No meaningful response received from the agent.")
+                
+                # Debug option
+                with st.expander("Debug: Show chat result"):
+                    st.write("Chat result type:", type(chat_result))
+                    st.write("Chat result attributes:", dir(chat_result))
+                    if hasattr(chat_result, 'chat_history'):
+                        st.write("Chat history:", chat_result.chat_history)
+                    if hasattr(chat_result, 'summary'):
+                        st.write("Summary:", chat_result.summary)
+                    st.write("Raw result:", chat_result)
