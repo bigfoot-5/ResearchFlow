@@ -3,7 +3,7 @@ import psycopg2.extras
 import os
 import json
 import asyncio
-from typing import Dict, List, Any, Sequence, AsyncGenerator
+from typing import Dict, List, Any, Sequence, AsyncGenerator, Optional
 from datetime import datetime, timedelta
 
 # Import Autogen components
@@ -14,8 +14,9 @@ from autogen_core import CancellationToken
 
 # Import for Vector DB and Embeddings
 import chromadb
-from langchain_community.embeddings import OllamaEmbeddings # Use langchain_community
-from chromadb.api.types import Documents
+from langchain_community.chat_models import ChatOllama # Using ChatOllama for conversation capabilities
+from langchain_community.embeddings import OllamaEmbeddings # Using OllamaEmbeddings for RAG
+from chromadb.api.types import Documents, QueryResult
 
 # --- Database Configuration ---
 # Ensure these environment variables are set or replace with your actual config
@@ -29,6 +30,7 @@ DB_CONFIG = {
 }
 
 # --- Dimension Values and Threshold ---
+# These are the possible values the agents can use for filtering
 HS_ANALYTICS_SOURCES = [
     'OFFLINE', 'EMAIL_MARKETING', 'DIRECT_TRAFFIC',
     'PAID_SEARCH', 'ORGANIC_SEARCH'
@@ -45,198 +47,294 @@ INDUSTRIES = [
     'INFORMATION_TECHNOLOGY_AND_SERVICES', 'RETAIL', 'FOOD_BEVERAGES'
 ]
 
-MIN_DEAL_COUNT = 5 # Still useful for filtering out statistically insignificant segments
+MIN_DEAL_COUNT = 5 # Minimum deals for a segment to be considered statistically significant
 
-# --- Helper function to build dynamic WHERE clauses ---
-def build_filter_conditions(filters: Dict[str, List[str]]) -> str:
-    """Builds SQL WHERE clause fragments for IN conditions."""
+# --- ChromaDB Initialization ---
+CHROMA_DB_PATH = os.path.join(os.getcwd(), "chroma_db_deals")
+COLLECTION_NAME: str = "all_deals_context"
+
+# Global variables to hold initialized ChromaDB components
+chroma_client: Optional[chromadb.PersistentClient] = None
+all_deals_collection: Optional[chromadb.Collection] = None
+ollama_embeddings: Optional[OllamaEmbeddings] = None
+
+print("Attempting to initialize ChromaDB and Ollama embeddings...")
+try:
+    print(f"[INIT] Initializing ChromaDB client at {CHROMA_DB_PATH}...")
+    chroma_client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
+    print("[INIT] ChromaDB client initialized successfully.")
+
+    # Initialize Ollama embeddings (using langchain_community)
+    # Use the same embedding model as used in populate_vector_db.py
+    embedding_model_name = "qwen3:1.7b" # Ensure this matches populate_vector_db.py
+    print(f"[INIT] Initializing Ollama embeddings with model '{embedding_model_name}'...")
+    # Ensure Ollama server is running and model is pulled
+    ollama_embeddings = OllamaEmbeddings(model=embedding_model_name, base_url="http://localhost:11434")
+    print("[INIT] Ollama embeddings initialized successfully.")
+
+    # Define a simple embedding function wrapper for ChromaDB
+    class ChromaDBEmbeddingFunction:
+        def __init__(self, langchain_embeddings: OllamaEmbeddings):
+            self.langchain_embeddings = langchain_embeddings
+
+        def __call__(self, input: Documents):
+            # input is expected to be a list of strings (Documents type hint)
+            print(f"[EMBED] Received input type: {type(input)}")
+            if isinstance(input, str):
+                 print(f"[EMBED] Input is a string. Converting to list: [{input[:50]}...]")
+                 input_list = [input]
+            elif isinstance(input, list):
+                 print(f"[EMBED] Input is a list. Checking contents...")
+                 # Filter out non-string elements and log warnings
+                 input_list = []
+                 for i, item in enumerate(input):
+                      if isinstance(item, str):
+                           input_list.append(item)
+                      else:
+                           print(f"[EMBED] Warning: Item at index {i} is not a string (type: {type(item)}). Skipping.")
+                 if not input_list:
+                      print("[EMBED] Warning: List input contained no strings after filtering.")
+                      # Depending on expected behavior, maybe raise error or return empty list
+                      # For now, return empty list if no valid strings found
+                      return [] # Or raise ValueError("Input list contains no valid strings.")
+            else:
+                 print(f"[EMBED] Error: Unexpected input type for embedding function: {type(input)}")
+                 # Return empty list or raise error for unhandled types
+                 return [] # Or raise TypeError("Input for embedding function must be a string or a list of strings.")
+
+            # Langchain's embed_documents expects a list of strings
+            print(f"[EMBED] Passing {len(input_list)} documents to OllamaEmbeddings.embed_documents...")
+            try:
+                 embeddings = self.langchain_embeddings.embed_documents(input_list)
+                 print("[EMBED] OllamaEmbeddings.embed_documents successful.")
+                 return embeddings
+            except Exception as e:
+                 print(f"[EMBED ERROR] Error during OllamaEmbeddings.embed_documents: {e}")
+                 # Re-raise the exception after logging, as embedding failure is critical
+                 raise
+
+
+    chroma_embedding_function = ChromaDBEmbeddingFunction(ollama_embeddings)
+    print("[INIT] Custom embedding function created.")
+
+    # Get the collection (do not create it here, it should be created by populate_vector_db.py)
+    print(f"[INIT] Getting ChromaDB collection: {COLLECTION_NAME}...")
+    # Use get_or_create_collection, but it won't re-create if it exists
+    all_deals_collection = chroma_client.get_or_create_collection(
+         name=COLLECTION_NAME,
+         # Need to provide embedding_function when getting the collection if it was created with one
+         embedding_function=chroma_embedding_function # Provide the embedding function here
+    )
+    print(f"[INIT] Successfully accessed ChromaDB collection '{COLLECTION_NAME}'.")
+
+except Exception as e:
+    print(f"[INIT ERROR] An unexpected error occurred during ChromaDB/Embeddings initialization: {e}")
+    # Keep the global variables as None if initialization fails
+    chroma_client = None
+    all_deals_collection = None
+    ollama_embeddings = None # Also set embeddings to None
+
+# --- Helper function to build dynamic WHERE clause for a single filter combo ---
+def build_single_filter_condition(filter_combo: Dict[str, List[str]]) -> str:
+    """Builds SQL WHERE clause for a single filter combination."""
     conditions = []
-    if 'hs_analytics_source' in filters and filters['hs_analytics_source']:
-        sources = ", ".join(f"'{s}'" for s in filters['hs_analytics_source'])
+    # Use .get() with an empty list default to handle missing keys in the combo
+    if filter_combo.get('hs_analytics_source'):
+        sources = ", ".join(f"'{s}'" for s in filter_combo['hs_analytics_source'])
         conditions.append(f"d.hs_analytics_source IN ({sources})")
-    if 'job_title' in filters and filters['job_title']:
-        titles = ", ".join(f"'{t}'" for t in filters['job_title'])
-        # Assuming contacts table is joined and job_title is on contacts (ct)
+    if filter_combo.get('job_title'):
+        titles = ", ".join(f"'{t}'" for t in filter_combo['job_title'])
         conditions.append(f"ct.job_title IN ({titles})")
-    if 'industry' in filters and filters['industry']:
-        industries = ", ".join(f"'{i}'" for i in filters['industry'])
-        # Assuming companies table is joined and industry is on companies (c)
+    if filter_combo.get('industry'):
+        industries = ", ".join(f"'{i}'" for i in filter_combo['industry'])
         conditions.append(f"c.industry IN ({industries})")
 
-    return " AND ".join(conditions) if conditions else "TRUE" # Return TRUE if no filters
+    return " AND ".join(conditions) if conditions else "TRUE" # Return TRUE if no filters specified
 
-# --- Vector Database Setup ---
-CHROMA_DB_PATH = os.path.join(os.getcwd(), "chroma_db_segments")
-COLLECTION_NAME = "high_win_rate_segments"
+# Access global ChromaDB variables (assumed to be set by populate_vector_db.py or equivalent)
+# These need to be imported or accessed carefully to avoid errors if not set.
+# A more robust way is dependency injection, but for this structure, globals are used.
+# REMOVED: import chromadb # Import chromadb here for access
 
-# Initialize ChromaDB client
-chroma_client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
+# Define global variables (will be populated by populate_vector_db.py if run)
+# REMOVED: Initialization block for ChromaDB clients and collection.
+# The variables are declared here, but expected to be assigned values externally.
+# REMOVED: chroma_client: Optional[chromadb.PersistentClient] = None
+# REMOVED: all_deals_collection: Optional[chromadb.Collection] = None
+# REMOVED: chroma_initialized: bool = False
+# REMOVED: COLLECTION_NAME: str = "all_deals_context"
+# REMOVED: CHROMA_DB_PATH = os.path.join(os.getcwd(), "chroma_db_deals")
 
-# Initialize Ollama embeddings (using langchain_community)
-embedding_model = "qwen3:1.7b" # Or your preferred embedding model
-ollama_embeddings = OllamaEmbeddings(model=embedding_model, base_url="http://localhost:11434")
-
-# Define a custom embedding function for ChromaDB using Ollama
-class ChromaDBEmbeddingFunction:
-    """
-    Custom embedding function for ChromaDB using embeddings from Ollama.
-    Adapts the langchain_community OllamaEmbeddings for ChromaDB.
-    """
-    def __init__(self, langchain_embeddings: OllamaEmbeddings):
-        self.langchain_embeddings = langchain_embeddings
-
-    def __call__(self, input: Documents):
-        # ChromaDB expects a list of embeddings corresponding to the list of documents
-        return self.langchain_embeddings.embed_documents(input)
-
-# Initialize the embedding function with Ollama embeddings
-chroma_embedding_function = ChromaDBEmbeddingFunction(ollama_embeddings)
-
-# Get or create the collection
-# Note: When using a custom embedding function, you must specify it here.
-try:
-    collection = chroma_client.get_or_create_collection(
-        name=COLLECTION_NAME,
-        metadata={"description": "Segments analyzed for high win rates"},
-        embedding_function=chroma_embedding_function # Specify the custom embedding function
-    )
-    print(f"Initialized ChromaDB collection: {COLLECTION_NAME}")
-except Exception as e:
-    print(f"Error initializing ChromaDB collection: {e}")
-    collection = None # Handle cases where ChromaDB initialization fails
-
-# --- Component to process data and vectorize ---
-def vectorize_segments_data(raw_data: List[Dict]):
-    """
-    Processes raw segment data, creates documents, and adds them to the vector DB.
-    """
-    if collection is None:
-        print("ChromaDB collection not initialized. Skipping vectorization.")
-        return
-
-    documents_to_add = []
-    ids_to_add = []
-    metadatas_to_add = []
-
-    for row in raw_data:
-        industry = row.get('industry', 'Unknown Industry')
-        job_title = row.get('job_title', 'Unknown Job Title')
-        source = row.get('hs_analytics_source', 'Unknown Source')
-        total_deals = row.get('total_deals', 0)
-        won_deals = row.get('won_deals', 0)
-        avg_amount = row.get('avg_amount', 0)
-        avg_days_to_close = row.get('avg_days_to_close', 0)
-
-        # Calculate metrics for the document content
-        win_rate = (won_deals / total_deals * 100) if total_deals > 0 else 0
-        acv = avg_amount or 0
-        sales_cycle = avg_days_to_close or 0
-
-        # Create a descriptive document string for the segment
-        doc_content = (
-            f"Segment: Industry='{industry}', Job Title='{job_title}', Source='{source}'. "
-            f"Performance Metrics: Total Deals={total_deals}, Won Deals={won_deals}, Win Rate={win_rate:.2f}%, "
-            f"Average Deal Value (ACV)=${acv:.2f}, Average Sales Cycle={sales_cycle:.2f} days."
-        )
-
-        # Create a unique ID for the document (combination of dimension values)
-        doc_id = f"{industry}_{job_title}_{source}".replace(" ", "_").lower() # Simple ID generation
-
-        # Store full data in metadata for retrieval
-        metadata = {
-            "industry": industry,
-            "job_title": job_title,
-            "hs_analytics_source": source,
-            "total_deals": total_deals,
-            "won_deals": won_deals,
-            "win_rate": round(win_rate, 2),
-            "acv": round(acv, 2),
-            "sales_cycle_days": round(sales_cycle, 2)
-        }
-
-        documents_to_add.append(doc_content)
-        ids_to_add.append(doc_id)
-        metadatas_to_add.append(metadata)
-
-    if documents_to_add:
-        try:
-            # Clear existing data in the collection (optional, for fresh runs)
-            # collection.delete(ids=collection.get()['ids']) # Uncomment to clear
-
-            collection.add(
-                documents=documents_to_add,
-                ids=ids_to_add,
-                metadatas=metadatas_to_add
-            )
-            print(f"Added {len(documents_to_add)} segment documents to ChromaDB collection.")
-        except Exception as e:
-            print(f"Error adding documents to ChromaDB: {e}")
-
-
-# --- Agent to query database and vectorize (modified DatabaseQueryAgent) ---
-class DataVectorizerAgent(BaseChatAgent):
-    def __init__(self, name: str, db_config: dict):
-        super().__init__(name=name, description="Agent that queries the database for segment data and vectorizes it.")
-        self.db_config = db_config
+# --- Agent 1: Filter Prediction Agent (LLM-backed, with RAG) ---
+# This agent now assumes the vector database client and collection are available as global variables
+# if the database population script has been run.
+class FilterPredictionAgent(BaseChatAgent):
+    def __init__(self, name: str, llm_model: str = "gemma3:1b"):
+        super().__init__(name=name, description="Agent that predicts high-performing filter combinations using LLM reasoning and vector DB context")
+        # Using ChatOllama for conversational capabilities and context handling
+        self._llm = ChatOllama(model=llm_model, base_url="http://localhost:11434")
 
     @property
     def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
-        return (TextMessage,) # Will yield status message
+        return (TextMessage,)
 
     async def on_messages_stream(
         self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
     ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
-        # This agent runs the query and vectorizes, it doesn't need complex input from messages
-        print("Running database query and vectorization...")
-        conn = None
-        cursor = None
+        # This agent initiates the process by querying the vector DB
         try:
-            conn = psycopg2.connect(**self.db_config)
-            cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+            # Check if ChromaDB components were successfully initialized globally
+            if all_deals_collection is None or ollama_embeddings is None:
+                 yield Response(
+                     chat_message=TextMessage(content=json.dumps({"status": "error", "message": f"Vector database or embeddings not initialized. ChromaDB Collection: {all_deals_collection is not None}, Embeddings: {ollama_embeddings is not None}. Check initialization logs."}), source=self.name),
+                     inner_messages=[]
+                 )
+                 return
 
-            # Query to get metrics for all combinations of dimensions with minimum deals
-            # This query is similar to the one in the previous script, grouping by all dimensions
-            query = f"""
-                SELECT
-                    c.industry,
-                    ct.job_title,
-                    d.hs_analytics_source,
-                    COUNT(d.id) AS total_deals,
-                    COUNT(CASE WHEN d.dealstage = 'closedwon' THEN d.id END) AS won_deals,
-                    AVG(d.amount) AS avg_amount,
-                    AVG(d.days_to_close) AS avg_days_to_close
-                FROM dim_deals d
-                JOIN dim_companies c ON d.company_id = c.company_id
-                LEFT JOIN dim_contacts ct ON d.company_id = ct.company_id
-                GROUP BY
-                    c.industry,
-                    ct.job_title,
-                    d.hs_analytics_source
-                HAVING COUNT(d.id) >= {MIN_DEAL_COUNT}; -- Only include segments with enough data
+            rag_query = "Examples of deals with high win rate and good performance metrics."
+            print(f"Querying vector DB for context: '{rag_query}'...")
 
-            """
-            cursor.execute(query)
-            raw_data = cursor.fetchall()
+            # Query the collection
+            results: QueryResult = all_deals_collection.query(
+                query_texts=[rag_query],
+                n_results=20, # Retrieve a reasonable number of relevant deals for context
+                include=['documents', 'metadatas']
+            )
 
-            print(f"Fetched {len(raw_data)} segments from the database.")
+            retrieved_deals = results.get("documents", [[]])[0]
+            retrieved_metadatas = results.get("metadatas", [[]])[0]
 
-            # Vectorize the fetched data and add to ChromaDB
-            vectorize_segments_data(raw_data)
 
-            result_message = {"status": "success", "message": f"Successfully vectorized {len(raw_data)} segments."}
+            if not retrieved_deals:
+                 context = "No relevant deal examples found in the vector database."
+                 print(context)
+            else:
+                 context = "Context from similar high-performing deals:\n\n"
+                 for i, (doc, meta) in enumerate(zip(retrieved_deals, retrieved_metadatas)):
+                    context += f"Deal {i+1}: {doc}\n"
+                    # Optionally add some key metadata fields directly
+                    # Ensure keys exist in metadata before accessing and explicitly convert to string
+                    dealstage = str(meta.get('dealstage', 'N/A'))
+                    amount = float(meta.get('amount', 0) or 0)
+                    days_to_close = float(meta.get('days_to_close', 0) or 0)
+                    industry = str(meta.get('industry', 'N/A'))
+                    employees = str(meta.get('numberofemployees', 'N/A'))
+                    job_title = str(meta.get('job_title', 'N/A'))
+                    context += f"  - Dealstage: {dealstage}, Amount: ${amount:.2f}, Sales Cycle: {days_to_close:.2f} days\n"
+                    # Include other metadata fields explicitly converted to string
+                    context += f"  - Industry: {industry}, Employees: {employees}, Job Title: {job_title}\n"
+                    context += "\n"
+                    print(f"Retrieved {len(retrieved_deals)} deals for context.")
 
+
+             # Step 2: Formulate prompt for the LLM with context and available dimensions
+                    prompt = f"""
+Analyze the following examples of high-performing deals provided as context.
+Based on these examples and your general knowledge about sales dynamics, predict 5 to 10 specific filter combinations (segments) that are likely to have high revenue velocity. Revenue velocity is calculated as (Win Rate ÷ Sales Cycle in Days) × Average Contract Value (ACV).
+
+Consider combinations of the following dimensions and their possible values:
+
+- **Industries**: {', '.join(INDUSTRIES)}
+- **Job Titles**: {', '.join(JOB_TITLES)}
+- **Analytics Sources**: {', '.join(HS_ANALYTICS_SOURCES)}
+
+For each predicted combination, provide a brief 'reasoning' field explaining *why* you predict this combination will have high revenue velocity, referencing patterns observed in the context examples or general sales principles. Also, provide the 'filter' field with the specific values chosen for each dimension in that combination as lists. Ensure each filter combination is a dictionary with 'filter' (a dictionary of lists) and 'reasoning' (a string) keys.
+
+Example JSON format for the list of predictions:
+[
+  {{
+    "filter": {{
+      "industry": ["TECHNOLOGY"],
+      "job_title": ["CEO", "VP People"],
+      "hs_analytics_source": ["ORGANIC_SEARCH", "DIRECT_TRAFFIC"]
+    }},
+    "reasoning": "Based on the context, deals in the technology sector with C-level contacts from organic sources seem to close faster with higher amounts."
+  }},
+  {{
+    "filter": {{
+      "industry": ["PHARMACEUTICALS"],
+      "job_title": ["Head of Talent"],
+      "hs_analytics_source": ["EMAIL_MARKETING"]
+    }},
+    "reasoning": "Pharmaceutical deals with talent heads often represent specialized software needs, and email campaigns can effectively reach these niche roles."
+  }},
+  ...
+]
+
+Predicted Segments (JSON array):
+"""
+            # Add the context to the prompt for the LLM
+            prompt_with_context = f"{context}\n\n{prompt}"
+
+            # Print the full prompt being sent to the LLM for inspection
+            print("--- START LLM PROMPT ---")
+            print(prompt_with_context)
+            print("--- END LLM PROMPT ---")
+
+            # Use the LLM to generate the predicted filters based on context
+            try:
+                # Langchain ChatOllama uses invoke
+                llm_response = self._llm.invoke(prompt_with_context) # Use the prompt with context again
+                print("Successfully invoked LLM.")
+
+                # Extract the string content from the LLM's response message
+                llm_response_content = llm_response.content
+                print("--- START RAW LLM RESPONSE CONTENT ---")
+                print(llm_response_content)
+                print("--- END RAW LLM RESPONSE CONTENT ---")
+
+                # Attempt to extract JSON array from the response
+                import re
+                # Updated regex to be more robust, looking for the first occurrence of a list containing dicts
+                match = re.search(r'(\[\s*\{.*?\}\s*(,\s*\{.*?\}\s*)*\])', llm_response_content, re.DOTALL)
+                if match:
+                    try:
+                        # Take the first captured group, which should be the JSON array
+                        json_string = match.group(1)
+                        predicted_filters_with_reasoning = json.loads(json_string)
+                        # Validate basic structure of the expected output
+                        if isinstance(predicted_filters_with_reasoning, list) and \
+                           all(isinstance(item, dict) and 'filter' in item and isinstance(item.get('filter'), dict) and 'reasoning' in item for item in predicted_filters_with_reasoning):
+
+                             print(f"Successfully extracted {len(predicted_filters_with_reasoning)} predicted filters from LLM response.")
+                             yield Response(
+                                chat_message=TextMessage(content=json.dumps({"status": "success", "predicted_filters": predicted_filters_with_reasoning}), source=self.name),
+                                inner_messages=[],
+                             )
+                        else:
+                             print("LLM response did not match expected JSON structure.")
+                             yield Response(
+                                chat_message=TextMessage(content=json.dumps({"status": "error", "message": "LLM response format incorrect, expected list of dictionaries with 'filter' and 'reasoning'."}), source=self.name),
+                                inner_messages=[],
+                             )
+                    except json.JSONDecodeError:
+                        print("Could not parse JSON from LLM response.")
+                        print(f"LLM response content was:\n{llm_response_content}") # Log response for debugging
+                        yield Response(
+                            chat_message=TextMessage(content=json.dumps({"status": "error", "message": "Could not parse JSON from LLM response."}), source=self.name),
+                            inner_messages=[],
+                        )
+                else:
+                    print("Could not find JSON array in LLM response.")
+                    print(f"LLM response content was:\n{llm_response_content}") # Log response for debugging
+                    yield Response(
+                        chat_message=TextMessage(content=json.dumps({"status": "error", "message": "Could not extract filter combinations (JSON array) from LLM response."}), source=self.name),
+                        inner_messages=[],
+                    )
+            except Exception as e:
+                 # Catch any other exceptions during the LLM call or response processing
+                 print(f"[LLM INVOKE ERROR] An unexpected error occurred during LLM invocation or initial processing: {e}")
+                 yield Response(
+                      chat_message=TextMessage(content=json.dumps({"status": "error", "message": f"LLM invocation or processing error: {e}"}), source=self.name),
+                      inner_messages=[]
+                 )
         except Exception as e:
-            result_message = {"status": "error", "message": str(e)}
-        finally:
-            if cursor:
-                cursor.close()
-            if conn:
-                conn.close()
-
-        yield Response(
-            chat_message=TextMessage(content=json.dumps(result_message), source=self.name),
-            inner_messages=[],
-        )
+            # Outer catch block for errors during ChromaDB query or context building
+            print(f"[RAG ERROR] Error during vector database query or context building: {e}")
+            yield Response(
+                chat_message=TextMessage(content=json.dumps({"status": "error", "message": f"Vector database query or context building error: {e}"}), source=self.name),
+                inner_messages=[],
+            )
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         pass
@@ -247,16 +345,14 @@ class DataVectorizerAgent(BaseChatAgent):
         async for message in self.on_messages_stream(messages, cancellation_token):
             if isinstance(message, Response):
                 return message
-        raise RuntimeError("DataVectorizerAgent did not produce a response.")
+        raise RuntimeError("FilterPredictionAgent did not produce a response.")
 
 
-# --- Agent for RAG Analysis of High Win Rate Segments ---
-class RAGAnalysisAgent(BaseChatAgent):
-    def __init__(self, name: str, llm_model: str = "gemma3:1b"):
-        super().__init__(name=name, description="Agent that uses RAG to analyze segments and find those with high win rates.")
-        # Configure your LLM client here
-        from langchain_community.chat_models import ChatOllama # Using ChatOllama for conversation capabilities
-        self._llm = ChatOllama(model=llm_model, base_url="http://localhost:11434") # Using ChatOllama for conversation
+# --- Agent 2: Database Query Agent (Measures performance for a single filter combo) ---
+class DatabaseQueryAgent(BaseChatAgent):
+    def __init__(self, name: str, db_config: Dict[str, Any]):
+        super().__init__(name=name, description="Agent that queries the database to get deal metrics for a specific segment")
+        self.db_config = db_config
 
     @property
     def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
@@ -266,87 +362,79 @@ class RAGAnalysisAgent(BaseChatAgent):
         self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
     ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
         latest_message = messages[-1]
-        # The message content is the user's query (e.g., "Which segments have high win rates?")
-        user_query = latest_message.content
-
-        if collection is None:
-             yield Response(
-                 chat_message=TextMessage(content=json.dumps({"status": "error", "message": "Vector database not initialized."}), source=self.name),
-                 inner_messages=[]
-             )
-             return
-
+        # The message content is expected to be a JSON string of a single filter combination dictionary
         try:
-            # Step 1: Query the vector database for relevant segments
-            # Use the user's query to search for similar segment descriptions
-            print(f"Querying vector DB with user query: '{user_query}'...")
-            results = collection.query(
-                query_texts=[user_query],
-                n_results=10, # Retrieve top 10 most relevant segments
-                include=['documents', 'metadatas'] # Include document content and metadata
-            )
+            filter_combo = json.loads(latest_message.content)
 
-            retrieved_segments = results.get("metadatas", [[]])[0] # Get metadata for the top query
-            retrieved_documents = results.get("documents", [[]])[0] # Get documents for the top query
-
-            if not retrieved_segments:
+            if not isinstance(filter_combo, dict):
                  yield Response(
-                     chat_message=TextMessage(content=json.dumps({"status": "success", "analysis": "No relevant segments found in the vector database.", "data": []}), source=self.name),
+                     chat_message=TextMessage(content=json.dumps({"status": "error", "message": "Invalid input: Expected a filter combination dictionary."}), source=self.name),
                      inner_messages=[]
                  )
                  return
 
-            # Step 2: Format retrieved segments data as context for the LLM
-            context = "Retrieved Segment Data:\n\n"
-            for i, segment_metadata in enumerate(retrieved_segments):
-                 context += f"Segment {i+1}:\n"
-                 for key, value in segment_metadata.items():
-                      context += f"  {key}: {value}\n"
-                 context += "\n"
+            where_condition = build_single_filter_condition(filter_combo)
 
-            # Step 3: Formulate prompt for the LLM with context and user query
-            prompt = f"""
-Analyze the following sales segment data provided as context.
-Identify the segments within this data that have the highest Win Rate.
-Explain *why* their win rates are high based on the other metrics (Total Deals, ACV, Sales Cycle) if possible from the provided data.
-List the top 3 segments with the highest win rates from the context.
+            conn = None
+            cursor = None
+            try:
+                conn = psycopg2.connect(**self.db_config)
+                cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
 
-Context:
-{context}
+                # Query to get metrics for this SPECIFIC filter combination
+                # Note: We don't group by dimensions here, as the input already defines the group
+                # The HAVING clause ensures we only return metrics if the segment has enough deals
+                query = f"""
+                    SELECT
+                        COUNT(d.id) AS total_deals,
+                        COUNT(CASE WHEN d.dealstage = 'closedwon' THEN d.id END) AS won_deals,
+                        AVG(d.amount) AS avg_amount,
+                        AVG(d.days_to_close) AS avg_days_to_close
+                    FROM dim_deals d
+                    JOIN dim_companies c ON d.company_id = c.company_id
+                    LEFT JOIN dim_contacts ct ON d.company_id = ct.company_id
+                    WHERE {where_condition}
+                    GROUP BY TRUE -- Grouping by TRUE to get one row of aggregates for the entire filtered set
+                    HAVING COUNT(d.id) >= {MIN_DEAL_COUNT}; -- Apply minimum deal count AFTER filtering
 
-User Query: {user_query}
+                """
+                # print("Executing Query:", query) # Debug print
+                cursor.execute(query)
+                row = cursor.fetchone() # Fetch only one row of aggregates
 
-Analysis:
-"""
-            print("Sending augmented prompt to LLM...")
-            # Use the LLM client to generate the analysis based on the context
-            # Langchain ChatOllama uses invoke
-            llm_analysis_text = self._llm.invoke(prompt)
+                if row:
+                    # Segment met minimum deal count and data was retrieved
+                    result_data = {"status": "success", "metrics": row}
+                else:
+                    # No rows returned means the segment didn't meet MIN_DEAL_COUNT or has no deals matching the filter
+                    result_data = {
+                        "status": "success",
+                        "metrics": None, # Explicitly None if no data/min deals not met
+                         "message": f"Segment did not meet the minimum deal count ({MIN_DEAL_COUNT}) or had no deals matching the filter criteria."
+                    }
 
+            except Exception as e:
+                result_data = {"status": "error", "message": str(e)}
+            finally:
+                if cursor:
+                    cursor.close()
+                if conn:
+                    conn.close()
 
-            # You can structure the final output as needed, maybe including raw retrieved data
-            final_result = {
-                "status": "success",
-                "query": user_query,
-                "retrieved_segments_count": len(retrieved_segments),
-                "retrieved_data": retrieved_segments, # Include raw retrieved data
-                "analysis": llm_analysis_text
-            }
-
+            # Always return a result_data dictionary, even on error
             yield Response(
-                chat_message=TextMessage(content=json.dumps(final_result), source=self.name),
+                chat_message=TextMessage(content=json.dumps(result_data), source=self.name),
                 inner_messages=[],
             )
 
-        except Exception as e:
+        except json.JSONDecodeError:
             yield Response(
-                chat_message=TextMessage(content=json.dumps({"status": "error", "message": str(e)}), source=self.name),
-                inner_messages=[],
+                 chat_message=TextMessage(content=json.dumps({"status": "error", "message": "Invalid JSON input"}), source=self.name),
+                 inner_messages=[]
             )
-
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
-        pass
+        pass # No state to reset
 
     async def on_messages(
         self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
@@ -354,62 +442,305 @@ Analysis:
         async for message in self.on_messages_stream(messages, cancellation_token):
             if isinstance(message, Response):
                 return message
-        raise RuntimeError("RAGAnalysisAgent did not produce a response.")
+        raise RuntimeError("DatabaseQueryAgent did not produce a response.")
 
 
-# --- Main RAG Workflow Orchestration ---
-async def predict_high_win_rate_segments_rag():
-    print("Starting RAG-based High Win Rate Prediction workflow...")
+# --- Agent 3: Revenue Velocity Analysis Agent (LLM-backed) ---
+class RevenueVelocityAnalysisAgent(BaseChatAgent):
+    def __init__(self, name: str, llm_model: str = "gemma3:1b"): # Use your preferred LLM
+        super().__init__(name=name, description="Agent that analyzes predicted segment performance based on measured metrics")
+
+        # Using ChatOllama for conversational capabilities
+        self._llm = ChatOllama(model=llm_model, base_url="http://localhost:11434")
+
+    @property
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
+        return (TextMessage,)
+
+    def calculate_revenue_velocity(self, total_deals: int, won_deals: int, avg_amount: float, avg_days_to_close: float) -> float:
+         """Calculates Revenue Velocity for a single segment."""
+         win_rate = (won_deals / total_deals * 100) if total_deals > 0 else 0
+         acv = avg_amount or 0
+         sales_cycle = avg_days_to_close or 0
+
+         # Calculate Revenue Velocity: (Win Rate / Sales Cycle) * ACV
+         # Avoid division by zero for sales cycle
+         revenue_velocity = (win_rate / sales_cycle * acv) if sales_cycle > 0 else 0 # Handle sales_cycle = 0
+         return round(revenue_velocity, 2)
+
+    async def on_messages_stream(
+        self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
+    ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
+        latest_message = messages[-1]
+        # The message content is expected to be a JSON string containing a list of tested segments and their results
+        try:
+            tested_segments_results = json.loads(latest_message.content)
+
+            if not isinstance(tested_segments_results, list):
+                 yield Response(
+                     chat_message=TextMessage(content=json.dumps({"status": "error", "message": "Invalid input: Expected a list of tested segment results."}), source=self.name),
+                     inner_messages=[]
+                 )
+                 return
+
+            analyzed_results = []
+            for segment_result in tested_segments_results:
+                filter_combo = segment_result.get("filter", {})
+                prediction_reasoning = segment_result.get("reasoning", "No reasoning provided.")
+                db_status = segment_result.get("db_status")
+                db_message = segment_result.get("db_message")
+                metrics = segment_result.get("metrics")
+
+                measured_rv = 0
+                if db_status == "success" and metrics is not None:
+                    total_deals = metrics.get('total_deals', 0)
+                    won_deals = metrics.get('won_deals', 0)
+                    avg_amount = metrics.get('avg_amount', 0)
+                    avg_days_to_close = metrics.get('avg_days_to_close', 0)
+
+                    measured_rv = self.calculate_revenue_velocity(
+                        total_deals, won_deals, avg_amount, avg_days_to_close
+                    )
+
+                    analyzed_results.append({
+                        "filter": filter_combo,
+                        "prediction_reasoning": prediction_reasoning,
+                        "measured_metrics": {
+                            "total_deals": total_deals,
+                            "won_deals": won_deals,
+                            "win_rate": round((won_deals / total_deals * 100) if total_deals > 0 else 0, 2),
+                            "acv": round(avg_amount or 0, 2),
+                            "sales_cycle_days": round(avg_days_to_close or 0, 2),
+                            "revenue_velocity": measured_rv
+                        },
+                        "status": "measured"
+                    })
+                else:
+                    # Handle cases where DB query failed or no data for the segment
+                     analyzed_results.append({
+                         "filter": filter_combo,
+                         "prediction_reasoning": prediction_reasoning,
+                         "measured_metrics": None,
+                         "status": "db_error" if db_status == "error" else "no_data",
+                         "message": db_message if db_status == "error" else f"Segment did not meet the minimum deal count ({MIN_DEAL_COUNT}) or had no deals matching the filter criteria."
+                     })
+
+            # Sort segments by measured Revenue Velocity (highest first), putting segments with no data last
+            # Use measured_metrics.get('revenue_velocity', -1) to handle None metrics and place them at the end
+            analyzed_results.sort(key=lambda x: x.get("measured_metrics").get("revenue_velocity", -1) if x.get("measured_metrics") is not None else -1, reverse=True)
+
+
+            if not analyzed_results:
+                 yield Response(
+                     chat_message=TextMessage(content=json.dumps({"status": "success", "analysis": "No segments were tested or none met the minimum deal count.", "results": []}), source=self.name),
+                     inner_messages=[]
+                 )
+                 return
+
+
+            # Use LLM for natural language analysis
+            # Prepare data for LLM prompt
+            results_summary = json.dumps(analyzed_results, indent=2)
+            prompt = f"""
+Analyze the following results from testing predicted sales segments.
+Each item in the list represents a predicted segment filter, its initial prediction reasoning, and the actual measured metrics and calculated revenue velocity from the database.
+
+Identify the segments with the highest *measured* Revenue Velocity.
+Compare the measured results to the initial predictions and their reasoning.
+Provide insights on which segments are the most promising based on the *measured* data.
+Suggest potential actions based on the top-performing *measured* segments.
+
+Tested Segment Results (JSON):
+{results_summary}
+
+Analysis:
+"""
+            print("Sending tested segment results to LLM for analysis...")
+
+            try:
+                # Langchain ChatOllama uses invoke
+                llm_analysis_text = self._llm.invoke(prompt)
+
+
+                final_result = {
+                    "status": "success",
+                    "tested_segments_count": len(analyzed_results),
+                    "analysis": llm_analysis_text.content, # Access the string content
+                    "results": analyzed_results # Include the structured results
+                }
+
+                yield Response(
+                    chat_message=TextMessage(content=json.dumps(final_result), source=self.name),
+                    inner_messages=[],
+                )
+
+            except Exception as llm_error:
+                 yield Response(
+                     chat_message=TextMessage(content=json.dumps({"status": "error", "message": f"Error during LLM analysis: {llm_error}\n\nStructured results:\n\n{results_summary}"}), source=self.name),
+                     inner_messages=[]
+                 )
+
+
+        except json.JSONDecodeError:
+            yield Response(
+                 chat_message=TextMessage(content=json.dumps({"status": "error", "message": "Invalid JSON input from previous step"}), source=self.name),
+                 inner_messages=[]
+            )
+
+    # Added missing methods required by BaseChatAgent
+    async def on_reset(self, cancellation_token: CancellationToken) -> None:
+        """Resets the agent's state. No state to reset for this agent."""
+        pass # No state to reset
+
+    # Added missing method required by BaseChatAgent
+    async def on_messages(
+        self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
+    ) -> Response:
+        """Handles a sequence of messages by processing the last message in the stream."""
+        # This agent primarily works with the last message, so we can just pass it to the stream handler
+        async for message in self.on_messages_stream(messages, cancellation_token):
+            if isinstance(message, Response):
+                return message
+        raise RuntimeError("RevenueVelocityAnalysisAgent did not produce a response.")
+
+
+# --- Main Workflow Orchestration ---
+async def predict_measure_analyze_segments():
+    print("Starting Predict, Measure, and Analyze Revenue Velocity workflow...")
+
+    # The vector database population is now handled by populate_vector_db.py.
+    # This script assumes the vector database is already populated.
 
     # Instantiate agents
-    data_vectorizer_agent = DataVectorizerAgent(name="DataVectorizerAgent", db_config=DB_CONFIG)
-    rag_analysis_agent = RAGAnalysisAgent(name="RAGAnalysisAgent", llm_model="gemma3:1b") # Use your preferred LLM
+    filter_agent = FilterPredictionAgent(name="FilterPredictionAgent", llm_model="gemma3:1b")
+    db_agent = DatabaseQueryAgent(name="DBQueryAgent", db_config=DB_CONFIG)
+    analysis_agent = RevenueVelocityAnalysisAgent(name="AnalysisAgent", llm_model="gemma3:1b")
 
-    # Step 1: Extract data from DB and vectorize
-    # Send an empty message to trigger the DataVectorizerAgent
-    print(f"Starting data extraction and vectorization using {data_vectorizer_agent.name}...")
-    vectorization_response = await data_vectorizer_agent.on_messages([UserMessage(content="", source="user")], CancellationToken())
+    # Step 1: Use LLM to predict promising filter combinations
+    print(f"\nRequesting filter predictions from {filter_agent.name}...")
+    filter_response = await filter_agent.on_messages(
+        [UserMessage(content="Predict segments with high revenue velocity.", source="user")],
+        CancellationToken()
+    )
 
-    if not vectorization_response or not vectorization_response.chat_message:
-        print(f"No valid response received from {data_vectorizer_agent.name}.")
-        return
+    if not filter_response or not filter_response.chat_message:
+        print(f"No valid response received from {filter_agent.name}.")
+        return # Exit the async function
 
     try:
-        vectorization_status = json.loads(vectorization_response.chat_message.content)
-        if vectorization_status.get("status") != "success":
-            print(f"Error during vectorization: {vectorization_status.get('message')}")
-            return
-        print(vectorization_status.get('message'))
+        filter_data = json.loads(filter_response.chat_message.content)
+        if filter_data.get("status") != "success":
+            print(f"Error from {filter_agent.name}: {filter_data.get('message')}")
+            return # Exit the async function
+        predicted_filters_with_reasoning = filter_data.get("predicted_filters", [])
+        print(f"Received {len(predicted_filters_with_reasoning)} predicted filter combinations.")
+        if not predicted_filters_with_reasoning:
+            print("No filter combinations were predicted. Aborting workflow.")
+            return # Exit the async function
+
     except json.JSONDecodeError:
-        print("Error decoding vectorization response.")
-        print(vectorization_response.chat_message.content)
-        return
+        print("Error decoding predicted filters from LLM response.")
+        return # Exit the async function
 
-    # Step 2: Perform RAG analysis using the populated vector DB
-    # Define the user query for the RAG agent
-    rag_query = "Which sales segments have the highest win rate?" # The query for the RAG system
+    # Step 2: For each predicted filter combination, query the database to get measured metrics
+    tested_segments_results = []
+    print("\n--- Measuring Performance of Predicted Segments ---")
+    for idx, segment_prediction in enumerate(predicted_filters_with_reasoning, start=1):
+        filter_combo = segment_prediction.get("filter", {})
+        prediction_reasoning = segment_prediction.get("reasoning", "No reasoning provided.")
 
-    print(f"\nStarting RAG analysis using {rag_analysis_agent.name} with query: '{rag_query}'...")
-    rag_analysis_response = await rag_analysis_agent.on_messages([UserMessage(content=rag_query, source="user")], CancellationToken())
+        if not filter_combo or not any(filter_combo.values()):
+            print(f"\nSkipping predicted segment {idx}: Empty filter combination.")
+            tested_segments_results.append({
+                "filter": filter_combo,
+                "reasoning": prediction_reasoning,
+                "db_status": "skipped",
+                "db_message": "Empty filter combination predicted.",
+                "metrics": None
+            })
+            continue
 
-    if rag_analysis_response and rag_analysis_response.chat_message:
-        final_result_json = rag_analysis_response.chat_message.content
-        print(f"Received final RAG analysis from {rag_analysis_agent.name}:")
-        # Parse and pretty print the final result
-        try:
-            final_result = json.loads(final_result_json)
-            print(json.dumps(final_result, indent=2))
-        except json.JSONDecodeError:
-            print("Error decoding final JSON response from RAG agent.")
-            print(final_result_json)
+        print(f"\nTesting predicted segment {idx}: Filter={filter_combo} (Reasoning: {prediction_reasoning[:100]}...)")
+
+        db_request_message = UserMessage(content=json.dumps(filter_combo), source=filter_agent.name)
+        db_response = await db_agent.on_messages([db_request_message], CancellationToken())
+
+        if db_response and db_response.chat_message:
+            try:
+                db_result = json.loads(db_response.chat_message.content)
+                tested_segments_results.append({
+                    "filter": filter_combo,
+                    "reasoning": prediction_reasoning,
+                    "db_status": db_result.get("status"),
+                    "db_message": db_result.get("message"),
+                    "metrics": db_result.get("metrics")
+                })
+                print(f"  DB Query Status: {db_result.get('status')}")
+                if db_result.get('status') == 'success' and db_result.get('metrics'):
+                    metrics = db_result.get('metrics')
+                    total = metrics.get('total_deals', 0)
+                    won = metrics.get('won_deals', 0)
+                    amount = metrics.get('avg_amount', 0)
+                    days = metrics.get('avg_days_to_close', 0)
+                    measured_rv = analysis_agent.calculate_revenue_velocity(total, won, amount, days)
+                    print(f"  Measured Metrics: Total Deals={total}, Won Deals={won}, ACV=${amount:.2f}, Sales Cycle={days:.2f} days, Measured RV={measured_rv:.2f}")
+                elif db_result.get('status') == 'success' and not db_result.get('metrics'):
+                     print(f"  {db_result.get('message')}")
+
+            except json.JSONDecodeError:
+                print(f"  Error decoding DB response for segment {idx}.")
+                tested_segments_results.append({
+                    "filter": filter_combo,
+                    "reasoning": prediction_reasoning,
+                    "db_status": "error",
+                    "db_message": "Invalid JSON response from DatabaseQueryAgent",
+                    "metrics": None
+                })
+        else:
+            print(f"No valid response received from {db_agent.name} for segment {idx}.")
+            tested_segments_results.append({
+                "filter": filter_combo,
+                "reasoning": prediction_reasoning,
+                "db_status": "error",
+                "db_message": "No valid response from DatabaseQueryAgent",
+                "metrics": None
+            })
+
+    # Step 3: Send tested segments results to Analysis Agent for final analysis and comparison
+    if tested_segments_results:
+        analyzable_results = [res for res in tested_segments_results if res.get("db_status") not in ["skipped", "error"]]
+        if analyzable_results:
+            print(f"\n--- Analyzing Measured Performance ---")
+            print(f"Sending results of {len(analyzable_results)} tested segments to {analysis_agent.name} for final analysis...")
+            analysis_request_message = UserMessage(content=json.dumps(analyzable_results), source=db_agent.name)
+            analysis_response = await analysis_agent.on_messages([analysis_request_message], CancellationToken())
+
+            if analysis_response and analysis_response.chat_message:
+                final_result_json = analysis_response.chat_message.content
+                print(f"Received final analysis from {analysis_agent.name}:")
+                try:
+                    final_result = json.loads(final_result_json)
+                    print(json.dumps(final_result, indent=2))
+                except json.JSONDecodeError:
+                    print("Error decoding final JSON response from Analysis agent.")
+                    print(final_result_json)
+            else:
+                print(f"No valid response received from {analysis_agent.name}.")
+        else:
+            print("\nNo segments with valid database results to analyze.")
     else:
-        print(f"No valid response received from {rag_analysis_agent.name}.")
+        print("\nNo segments were predicted or successfully tested for analysis.")
 
     print("\nWorkflow finished.")
 
-
 # --- Run the workflow ---
 if __name__ == "__main__":
-    # Ensure you have ChromaDB and Ollama embeddings dependencies installed
-    # pip install chromadb langchain-community ollama
-    asyncio.run(predict_high_win_rate_segments_rag())
+    # Ensure you have psycopg2 and autogen dependencies installed
+    # pip install psycopg2-binary autogen-agentchat autogen-core autogen-ext[ollama] chromadb langchain-community ollama
+    # Make sure you have 'gemma3:1b' model pulled in Ollama
+
+    # The vector database population is now handled by populate_vector_db.py.
+    # Ensure you run `python populate_vector_db.py` at least once before running this script.
+
+    # Run the main asynchronous workflow
+    asyncio.run(predict_measure_analyze_segments())
