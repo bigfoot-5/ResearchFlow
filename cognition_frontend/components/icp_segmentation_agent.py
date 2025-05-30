@@ -1,12 +1,13 @@
 import psycopg2
 from autogen import ConversableAgent
 from autogen import GroupChat, GroupChatManager
+import os
 
 your_llm_config = {
     "config_list": [
         {
             "model": "gpt-4",
-            "api_key": "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"
+            "api_key": os.environ["OPENAI_API_KEY"]
         }
     ]
 }
