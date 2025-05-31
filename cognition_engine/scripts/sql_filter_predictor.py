@@ -6,6 +6,10 @@ import asyncio
 from typing import Dict, List, Any, Sequence, AsyncGenerator, Optional
 from datetime import datetime, timedelta
 
+# Load environment variables from .env file
+from dotenv import load_dotenv
+load_dotenv()
+
 # Import Autogen components
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
@@ -14,8 +18,19 @@ from autogen_core import CancellationToken
 
 # Import for Vector DB and Embeddings
 import chromadb
+# Import OllamaEmbeddings and ChatOllama from langchain_community or langchain_ollama
+# Note: LangchainDeprecationWarning suggests using langchain-ollama.
+# If you have `langchain-ollama` installed:
+# from langchain_ollama import ChatOllama
+# from langchain_ollama import OllamaEmbeddings
+# If you only have `langchain_community` installed:
 from langchain_community.chat_models import ChatOllama # Using ChatOllama for conversation capabilities
 from langchain_community.embeddings import OllamaEmbeddings # Using OllamaEmbeddings for RAG
+
+# Import OpenAI components
+from langchain_openai import ChatOpenAI
+from langchain_openai import OpenAIEmbeddings # Using OpenAIEmbeddings for RAG
+
 from chromadb.api.types import Documents, QueryResult
 
 # --- Database Configuration ---
@@ -64,57 +79,93 @@ try:
     chroma_client = chromadb.PersistentClient(path=CHROMA_DB_PATH)
     print("[INIT] ChromaDB client initialized successfully.")
 
-    # Initialize Ollama embeddings (using langchain_community)
-    # Use the same embedding model as used in populate_vector_db.py
-    embedding_model_name = "qwen3:1.7b" # Ensure this matches populate_vector_db.py
-    print(f"[INIT] Initializing Ollama embeddings with model '{embedding_model_name}'...")
-    # Ensure Ollama server is running and model is pulled
-    ollama_embeddings = OllamaEmbeddings(model=embedding_model_name, base_url="http://localhost:11434")
-    print("[INIT] Ollama embeddings initialized successfully.")
+    embeddings_model: Optional[object] = None # Will hold either OllamaEmbeddings or OpenAIEmbeddings
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+
+    # Attempt to initialize OpenAI embeddings first
+    if openai_api_key:
+        openai_embedding_model_name = "text-embedding-ada-002" # Use the model you populated with
+        print(f"[INIT] Attempting to initialize OpenAI embeddings with model '{openai_embedding_model_name}'...")
+        try:
+            embeddings_model = OpenAIEmbeddings(api_key=openai_api_key, model=openai_embedding_model_name)
+            # Perform a small test invocation to check if it works
+            embeddings_model.embed_documents(["test"]) # Use embed_documents for batch embedding test
+            print("[INIT] Successfully initialized OpenAI embeddings.")
+        except Exception as e:
+            print(f"[INIT] Failed to initialize OpenAI embeddings: {e}")
+            embeddings_model = None # Ensure it's None if OpenAI fails
+    else:
+        print("[INIT] OPENAI_API_KEY not found in environment variables. Skipping OpenAI embeddings initialization.")
+
+    # If OpenAI initialization failed, attempt to initialize Ollama embeddings
+    if embeddings_model is None:
+        ollama_embedding_model_name = "qwen3:1.7b" # Ensure this matches populate_vector_db.py if you used Ollama
+        print(f"[INIT] Attempting to initialize Ollama embeddings with model '{ollama_embedding_model_name}'...")
+        try:
+            embeddings_model = OllamaEmbeddings(model=ollama_embedding_model_name, base_url="http://localhost:11434")
+            # Perform a small test invocation to check if it works
+            embeddings_model.embed_documents(["test"]) # Use embed_documents for batch embedding test
+            print("[INIT] Successfully initialized Ollama embeddings.")
+        except Exception as e:
+            print(f"[INIT] Failed to initialize Ollama embeddings: {e}")
+            embeddings_model = None # Ensure it's None if Ollama fails
+
+    # If neither LLM initialized, raise an error
+    if embeddings_model is None:
+        raise RuntimeError("Failed to initialize both OpenAI and Ollama embedding models for ChromaDB.")
 
     # Define a simple embedding function wrapper for ChromaDB
     class ChromaDBEmbeddingFunction:
-        def __init__(self, langchain_embeddings: OllamaEmbeddings):
-            self.langchain_embeddings = langchain_embeddings
+        def __init__(self): # No need to pass embeddings during init
+             pass # Embedding model will be accessed globally in __call__
 
         def __call__(self, input: Documents):
-            # input is expected to be a list of strings (Documents type hint)
-            print(f"[EMBED] Received input type: {type(input)}")
-            if isinstance(input, str):
-                 print(f"[EMBED] Input is a string. Converting to list: [{input[:50]}...]")
-                 input_list = [input]
-            elif isinstance(input, list):
-                 print(f"[EMBED] Input is a list. Checking contents...")
-                 # Filter out non-string elements and log warnings
-                 input_list = []
-                 for i, item in enumerate(input):
-                      if isinstance(item, str):
-                           input_list.append(item)
-                      else:
-                           print(f"[EMBED] Warning: Item at index {i} is not a string (type: {type(item)}). Skipping.")
-                 if not input_list:
-                      print("[EMBED] Warning: List input contained no strings after filtering.")
-                      # Depending on expected behavior, maybe raise error or return empty list
-                      # For now, return empty list if no valid strings found
-                      return [] # Or raise ValueError("Input list contains no valid strings.")
-            else:
-                 print(f"[EMBED] Error: Unexpected input type for embedding function: {type(input)}")
-                 # Return empty list or raise error for unhandled types
-                 return [] # Or raise TypeError("Input for embedding function must be a string or a list of strings.")
+             # input is expected to be a list of strings (Documents type hint)
+             print(f"[EMBED] Received input type: {type(input)}")
+             
+             # Access the globally initialized embeddings model
+             global embeddings_model
+             if embeddings_model is None:
+                  # This case should ideally not happen if initialization check passes,
+                  # but as a safeguard:
+                  raise RuntimeError("Embeddings model is not initialized in ChromaDBEmbeddingFunction.__call__.")
 
-            # Langchain's embed_documents expects a list of strings
-            print(f"[EMBED] Passing {len(input_list)} documents to OllamaEmbeddings.embed_documents...")
-            try:
-                 embeddings = self.langchain_embeddings.embed_documents(input_list)
-                 print("[EMBED] OllamaEmbeddings.embed_documents successful.")
-                 return embeddings
-            except Exception as e:
-                 print(f"[EMBED ERROR] Error during OllamaEmbeddings.embed_documents: {e}")
-                 # Re-raise the exception after logging, as embedding failure is critical
-                 raise
+             if isinstance(input, str):
+                  print(f"[EMBED] Input is a string. Converting to list: [{input[:50]}...]")
+                  input_list = [input]
+             elif isinstance(input, list):
+                  print(f"[EMBED] Input is a list. Checking contents...")
+                  # Filter out non-string elements and log warnings
+                  input_list = []
+                  for i, item in enumerate(input):
+                       if isinstance(item, str):
+                            input_list.append(item)
+                       else:
+                            print(f"[EMBED] Warning: Item at index {i} is not a string (type: {type(item)}). Skipping.")
+                  if not input_list:
+                       print("[EMBED] Warning: List input contained no strings after filtering.")
+                       # Depending on expected behavior, maybe raise error or return empty list
+                       # For now, return empty list if no valid strings found
+                       return [] # Or raise ValueError("Input list contains no valid strings.")
+             else:
+                  print(f"[EMBED] Error: Unexpected input type for embedding function: {type(input)}")
+                  # Return empty list or raise error for unhandled types
+                  return [] # Or raise TypeError("Input for embedding function must be a string or a list of strings.")
+
+             # Langchain's embed_documents expects a list of strings
+             print(f"[EMBED] Passing {len(input_list)} documents to embeddings_model.embed_documents...")
+             try:
+                  embeddings = embeddings_model.embed_documents(input_list)
+                  print("[EMBED] Embeddings model.embed_documents successful.")
+                  return embeddings
+             except Exception as e:
+                  print(f"[EMBED ERROR] Error during embeddings_model.embed_documents: {e}")
+                  # Re-raise the exception after logging, as embedding failure is critical
+                  raise
 
 
-    chroma_embedding_function = ChromaDBEmbeddingFunction(ollama_embeddings)
+    # Instantiate the embedding function without passing the model instance
+    chroma_embedding_function = ChromaDBEmbeddingFunction()
     print("[INIT] Custom embedding function created.")
 
     # Get the collection (do not create it here, it should be created by populate_vector_db.py)
@@ -133,6 +184,7 @@ except Exception as e:
     chroma_client = None
     all_deals_collection = None
     ollama_embeddings = None # Also set embeddings to None
+    embeddings_model = None # Ensure embeddings_model is also None on error
 
 # --- Helper function to build dynamic WHERE clause for a single filter combo ---
 def build_single_filter_condition(filter_combo: Dict[str, List[str]]) -> str:
@@ -169,10 +221,43 @@ def build_single_filter_condition(filter_combo: Dict[str, List[str]]) -> str:
 # This agent now assumes the vector database client and collection are available as global variables
 # if the database population script has been run.
 class FilterPredictionAgent(BaseChatAgent):
-    def __init__(self, name: str, llm_model: str = "gemma3:1b"):
+    def __init__(self, name: str, openai_model: str = "gpt-4o", ollama_model: str = "gemma3:1b"):
         super().__init__(name=name, description="Agent that predicts high-performing filter combinations using LLM reasoning and vector DB context")
-        # Using ChatOllama for conversational capabilities and context handling
-        self._llm = ChatOllama(model=llm_model, base_url="http://localhost:11434")
+
+        # Using ChatOllama for conversational capabilities
+        # Ensure Ollama server is running and model is pulled (gemma3:1b for prediction, qwen3:1.7b for embeddings in populate_vector_db.py)
+        self._llm = None
+        openai_api_key = os.getenv("OPENAI_API_KEY")
+
+        # Attempt to initialize OpenAI first
+        if openai_api_key:
+            print(f"Attempting to initialize OpenAI model '{openai_model}'...")
+            try:
+                self._llm = ChatOpenAI(api_key=openai_api_key, model=openai_model)
+                print("Successfully initialized OpenAI model.")
+            except Exception as e:
+                print(f"Failed to initialize OpenAI model: {e}")
+                self._llm = None # Ensure _llm is None if OpenAI initialization fails
+        else:
+            print("OPENAI_API_KEY not found in environment variables. Skipping OpenAI initialization.")
+
+        # If OpenAI initialization failed, attempt to initialize Ollama
+        if self._llm is None:
+            print(f"Attempting to initialize Ollama model '{ollama_model}'...")
+            try:
+                # Check if Ollama server is running and model exists
+                # A simple way to check might be to try invoking it immediately after init
+                ollama_test_llm = ChatOllama(model=ollama_model, base_url="http://localhost:11434")
+                ollama_test_llm.invoke("hello") # Simple test invocation
+                self._llm = ollama_test_llm
+                print("Successfully initialized Ollama model.")
+            except Exception as e:
+                print(f"Failed to initialize Ollama model: {e}")
+                self._llm = None # Ensure _llm is None if Ollama initialization fails
+
+        # If neither LLM initialized, raise an error
+        if self._llm is None:
+            raise RuntimeError("Failed to initialize both OpenAI and Ollama models.")
 
     @property
     def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
@@ -183,10 +268,11 @@ class FilterPredictionAgent(BaseChatAgent):
     ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
         # This agent initiates the process by querying the vector DB
         try:
-            # Check if ChromaDB components were successfully initialized globally
-            if all_deals_collection is None or ollama_embeddings is None:
+            # Check if ChromaDB collection and the embeddings model were successfully initialized globally
+            global embeddings_model # Access the global embeddings model
+            if all_deals_collection is None or embeddings_model is None:
                  yield Response(
-                     chat_message=TextMessage(content=json.dumps({"status": "error", "message": f"Vector database or embeddings not initialized. ChromaDB Collection: {all_deals_collection is not None}, Embeddings: {ollama_embeddings is not None}. Check initialization logs."}), source=self.name),
+                     chat_message=TextMessage(content=json.dumps({"status": "error", "message": f"Vector database or embeddings not initialized. ChromaDB Collection: {all_deals_collection is not None}, Embeddings Model: {embeddings_model is not None}. Check initialization logs."}), source=self.name),
                      inner_messages=[]
                  )
                  return
@@ -447,11 +533,43 @@ class DatabaseQueryAgent(BaseChatAgent):
 
 # --- Agent 3: Revenue Velocity Analysis Agent (LLM-backed) ---
 class RevenueVelocityAnalysisAgent(BaseChatAgent):
-    def __init__(self, name: str, llm_model: str = "gemma3:1b"): # Use your preferred LLM
+    def __init__(self, name: str, openai_model: str = "gpt-4o", ollama_model: str = "gemma3:1b"): # Use your preferred LLM
         super().__init__(name=name, description="Agent that analyzes predicted segment performance based on measured metrics")
 
         # Using ChatOllama for conversational capabilities
-        self._llm = ChatOllama(model=llm_model, base_url="http://localhost:11434")
+        # Ensure Ollama server is running and model is pulled (gemma3:1b for prediction, qwen3:1.7b for embeddings in populate_vector_db.py)
+        self._llm = None
+        openai_api_key = os.getenv("OPENAI_API_KEY")
+        
+        # Attempt to initialize OpenAI first
+        if openai_api_key:
+            print(f"Attempting to initialize OpenAI model '{openai_model}' for analysis...")
+            try:
+                self._llm = ChatOpenAI(api_key=openai_api_key, model=openai_model)
+                print("Successfully initialized OpenAI model for analysis.")
+            except Exception as e:
+                print(f"Failed to initialize OpenAI model for analysis: {e}")
+                self._llm = None
+        else:
+            print("OPENAI_API_KEY not found in environment variables. Skipping OpenAI initialization for analysis.")
+
+        # If OpenAI initialization failed, attempt to initialize Ollama
+        if self._llm is None:
+            print(f"Attempting to initialize Ollama model '{ollama_model}' for analysis...")
+            try:
+                 # Check if Ollama server is running and model exists
+                 # A simple way to check might be to try invoking it immediately after init
+                 ollama_test_llm = ChatOllama(model=ollama_model, base_url="http://localhost:11434")
+                 ollama_test_llm.invoke("hello") # Simple test invocation
+                 self._llm = ollama_test_llm
+                 print("Successfully initialized Ollama model for analysis.")
+            except Exception as e:
+                print(f"Failed to initialize Ollama model for analysis: {e}")
+                self._llm = None
+
+        # If neither LLM initialized, raise an error
+        if self._llm is None:
+            raise RuntimeError("Failed to initialize both OpenAI and Ollama models for analysis.")
 
     @property
     def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
@@ -459,7 +577,7 @@ class RevenueVelocityAnalysisAgent(BaseChatAgent):
 
     def calculate_revenue_velocity(self, total_deals: int, won_deals: int, avg_amount: float, avg_days_to_close: float) -> float:
          """Calculates Revenue Velocity for a single segment."""
-         win_rate = (won_deals / total_deals * 100) if total_deals > 0 else 0
+         win_rate = (won_deals / total_deals) if total_deals > 0 else 0
          acv = avg_amount or 0
          sales_cycle = avg_days_to_close or 0
 
@@ -508,7 +626,7 @@ class RevenueVelocityAnalysisAgent(BaseChatAgent):
                         "measured_metrics": {
                             "total_deals": total_deals,
                             "won_deals": won_deals,
-                            "win_rate": round((won_deals / total_deals * 100) if total_deals > 0 else 0, 2),
+                            "win_rate": round((won_deals / total_deals) if total_deals > 0 else 0, 2),
                             "acv": round(avg_amount or 0, 2),
                             "sales_cycle_days": round(avg_days_to_close or 0, 2),
                             "revenue_velocity": measured_rv
@@ -612,9 +730,9 @@ async def predict_measure_analyze_segments():
     # This script assumes the vector database is already populated.
 
     # Instantiate agents
-    filter_agent = FilterPredictionAgent(name="FilterPredictionAgent", llm_model="gemma3:1b")
+    filter_agent = FilterPredictionAgent(name="FilterPredictionAgent", openai_model="gpt-4o", ollama_model="gemma3:1b")
     db_agent = DatabaseQueryAgent(name="DBQueryAgent", db_config=DB_CONFIG)
-    analysis_agent = RevenueVelocityAnalysisAgent(name="AnalysisAgent", llm_model="gemma3:1b")
+    analysis_agent = RevenueVelocityAnalysisAgent(name="AnalysisAgent", openai_model="gpt-4o", ollama_model="gemma3:1b")
 
     # Step 1: Use LLM to predict promising filter combinations
     print(f"\nRequesting filter predictions from {filter_agent.name}...")
@@ -720,7 +838,25 @@ async def predict_measure_analyze_segments():
                 print(f"Received final analysis from {analysis_agent.name}:")
                 try:
                     final_result = json.loads(final_result_json)
+                    # Print the full analysis result
+                    print("--- Final Analysis Result ---")
                     print(json.dumps(final_result, indent=2))
+
+                    # Extract the top predicted segments (which are sorted by RV in analyzed_results)
+                    # The 'results' key in the final_result already contains the sorted analyzed_results
+                    top_segments = final_result.get("results", [])
+
+                    # Define output filename
+                    output_filename = "top_predicted_segments.json"
+
+                    # Write the top segments to a JSON file
+                    if top_segments:
+                        with open(output_filename, 'w') as f:
+                            json.dump(top_segments, f, indent=2)
+                        print(f"Successfully saved top predicted segments to {output_filename}")
+                    else:
+                        print("No analyzable segments with measured data to save.")
+
                 except json.JSONDecodeError:
                     print("Error decoding final JSON response from Analysis agent.")
                     print(final_result_json)

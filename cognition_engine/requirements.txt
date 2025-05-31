@@ -21,6 +21,7 @@ langchain-core==0.3.57
 langchain-ollama>=0.3.2
 langsmith>=0.1.125,<0.4
 langchain-chroma
+langchain-openai
 langchain_community
 langchain
 chromadb
