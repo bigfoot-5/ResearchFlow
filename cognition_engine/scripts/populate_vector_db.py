@@ -210,6 +210,8 @@ async def extract_and_vectorize_all_deals(db_config: Dict[str, Any]):
                 d.hs_analytics_source,
                 c.company_id,
                 c.industry,
+                c.country,
+                c.employee_bucket,
                 c.numberofemployees,
                 d.company_name,
                 ct.id AS contact_id,
@@ -245,7 +247,7 @@ async def extract_and_vectorize_all_deals(db_config: Dict[str, Any]):
                  f"Status: {row['dealstage']}, Amount: ${row['amount'] or 0:.2f}, "
                  f"Sales Cycle: {row['days_to_close'] or 0:.2f} days. "
                  f"Source: {row['hs_analytics_source'] or 'N/A'}. "
-                 f"Company: '{row['company_name']}' (ID: {row['company_id']}, Industry: {row['industry'] or 'N/A'}, Employees: {row['numberofemployees'] or 'N/A'}). "
+                 f"Company: '{row['company_name']}' (ID: {row['company_id']}, Industry: {row['industry'] or 'N/A'}, Country: {row.get('country') or 'N/A'}, Employee Bucket: {row.get('employee_bucket') or 'N/A'}, Employees: {row['numberofemployees'] or 'N/A'}). "
                  f"Contact: {row['first_name'] or ''} {row['last_name'] or ''} (Job Title: {row['job_title'] or 'N/A'}, ID: {row['contact_id'] or 'N/A'})."
              )
 
@@ -259,6 +261,8 @@ async def extract_and_vectorize_all_deals(db_config: Dict[str, Any]):
                  "days_to_close": row['days_to_close'],
                  "hs_analytics_source": row['hs_analytics_source'],
                  "industry": row['industry'],
+                 "country": row['country'],
+                 "employee_bucket": row['employee_bucket'],
                  "numberofemployees": row['numberofemployees'],
                  "job_title": row['job_title']
              }

@@ -37,6 +37,10 @@ models:
         data_type: string
       - name: numberofemployees
         data_type: bigint
+      - name: employee_bucket
+        data_type: string
+      - name: country
+        data_type: string
 
   - name: dim_contacts
     config:

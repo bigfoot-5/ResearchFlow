@@ -62,6 +62,23 @@ INDUSTRIES = [
     'INFORMATION_TECHNOLOGY_AND_SERVICES', 'RETAIL', 'FOOD_BEVERAGES'
 ]
 
+# New dimensions
+COUNTRIES = [
+    'United States',
+    'United Kingdom',
+    'Netherlands',
+    'Australia',
+    'Germany',
+    'UAE'
+]
+
+EMPLOYEE_BUCKETS = [
+    '1-1000',
+    '4001-5000',
+    '2001-3000',
+    '1001-2000'
+]
+
 MIN_DEAL_COUNT = 5 # Minimum deals for a segment to be considered statistically significant
 
 # --- ChromaDB Initialization ---
@@ -200,6 +217,13 @@ def build_single_filter_condition(filter_combo: Dict[str, List[str]]) -> str:
     if filter_combo.get('industry'):
         industries = ", ".join(f"'{i}'" for i in filter_combo['industry'])
         conditions.append(f"c.industry IN ({industries})")
+    # Add conditions for new dimensions
+    if filter_combo.get('country'):
+        countries = ", ".join(f"'{c}'" for c in filter_combo['country'])
+        conditions.append(f"c.country IN ({countries})")
+    if filter_combo.get('employee_bucket'):
+        buckets = ", ".join(f"'{b}'" for b in filter_combo['employee_bucket'])
+        conditions.append(f"c.employee_bucket IN ({buckets})")
 
     return " AND ".join(conditions) if conditions else "TRUE" # Return TRUE if no filters specified
 
@@ -323,6 +347,8 @@ Consider combinations of the following dimensions and their possible values:
 - **Industries**: {', '.join(INDUSTRIES)}
 - **Job Titles**: {', '.join(JOB_TITLES)}
 - **Analytics Sources**: {', '.join(HS_ANALYTICS_SOURCES)}
+- **Countries**: {', '.join(COUNTRIES)}
+- **Employee Buckets**: {', '.join(EMPLOYEE_BUCKETS)}
 
 For each predicted combination, provide a brief 'reasoning' field explaining *why* you predict this combination will have high revenue velocity, referencing patterns observed in the context examples or general sales principles. Also, provide the 'filter' field with the specific values chosen for each dimension in that combination as lists. Ensure each filter combination is a dictionary with 'filter' (a dictionary of lists) and 'reasoning' (a string) keys.
 

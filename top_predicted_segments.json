@@ -2,46 +2,32 @@
   {
     "filter": {
       "industry": [
-        "INFORMATION_TECHNOLOGY_AND_SERVICES"
-      ],
-      "job_title": [
-        "VP People"
-      ],
-      "hs_analytics_source": [
-        "OFFLINE"
-      ]
-    },
-    "prediction_reasoning": "Within INFORMATION_TECHNOLOGY_AND_SERVICES, VP People involvement has correlated with high-value contracts in an offline setting, indicating robust revenue velocity.",
-    "measured_metrics": {
-      "total_deals": 9,
-      "won_deals": 5,
-      "win_rate": 0.56,
-      "acv": 81238.22,
-      "sales_cycle_days": 44.0,
-      "revenue_velocity": 1025.74
-    },
-    "status": "measured"
-  },
-  {
-    "filter": {
-      "industry": [
+        "INFORMATION_TECHNOLOGY_AND_SERVICES",
         "FOOD_BEVERAGES"
       ],
       "job_title": [
+        "VP People",
         "CHRO"
       ],
       "hs_analytics_source": [
         "OFFLINE"
+      ],
+      "country": [
+        "United Kingdom"
+      ],
+      "employee_bucket": [
+        "1-1000",
+        "4001-5000"
       ]
     },
-    "prediction_reasoning": "The FOOD_BEVERAGES industry frequently involves CHROs, which when leveraged correctly through offline strategies, can lead to significant revenue of high value and efficiency.",
+    "prediction_reasoning": "High-value deals originating from offline sources in IT and Food & Beverages industries, especially with VP People and CHRO contacts, demonstrate a strong combination of high contract values and shorter sales cycles in the UK context.",
     "measured_metrics": {
-      "total_deals": 6,
-      "won_deals": 2,
-      "win_rate": 0.33,
-      "acv": 79604.83,
-      "sales_cycle_days": 42.17,
-      "revenue_velocity": 629.29
+      "total_deals": 10,
+      "won_deals": 6,
+      "win_rate": 0.6,
+      "acv": 85043.0,
+      "sales_cycle_days": 45.7,
+      "revenue_velocity": 1116.54
     },
     "status": "measured"
   },
@@ -51,36 +37,54 @@
         "ACCOUNTING"
       ],
       "job_title": [
+        "HR Director",
         "VP People"
       ],
       "hs_analytics_source": [
         "OFFLINE"
+      ],
+      "country": [
+        "United Kingdom"
+      ],
+      "employee_bucket": [
+        "1001-2000",
+        "3001-4000"
       ]
     },
-    "prediction_reasoning": "Though often closed-lost, successful deals with VP People in ACCOUNTING sectors highlight the potential for high-value contracts when offline methods are effectively executed.",
+    "prediction_reasoning": "Deals with HR Directors and VP People in the accounting sector tend to have high contract values, though the win rate can vary. However, offline engagements offer a personal touch, improving win rates for larger firms.",
     "measured_metrics": {
-      "total_deals": 9,
-      "won_deals": 1,
-      "win_rate": 0.11,
-      "acv": 79700.44,
-      "sales_cycle_days": 44.44,
-      "revenue_velocity": 199.25
+      "total_deals": 6,
+      "won_deals": 2,
+      "win_rate": 0.33,
+      "acv": 70823.67,
+      "sales_cycle_days": 47.83,
+      "revenue_velocity": 493.54
     },
     "status": "measured"
   },
   {
     "filter": {
       "industry": [
-        "FOOD_BEVERAGES"
+        "FOOD_BEVERAGES",
+        "RETAIL"
       ],
       "job_title": [
-        "VP People"
+        "Head of Talent"
       ],
       "hs_analytics_source": [
-        "OFFLINE"
+        "PAID_SEARCH",
+        "EMAIL_MARKETING"
+      ],
+      "country": [
+        "United States",
+        "Germany"
+      ],
+      "employee_bucket": [
+        "2001-3000",
+        "4001-5000"
       ]
     },
-    "prediction_reasoning": "In the context examples, deals in the FOOD_BEVERAGES industry with contacts holding VP People titles have shown consistently high closed-won statuses with shorter sales cycles when sourced offline.",
+    "prediction_reasoning": "Larger companies in food, beverages, and retail with Head of Talent involved often respond better to targeted approaches via email or paid search, leading to potentially higher win rates and larger deal sizes.",
     "measured_metrics": null,
     "status": "no_data",
     "message": "Segment did not meet the minimum deal count (5) or had no deals matching the filter criteria."
@@ -91,13 +95,22 @@
         "INFORMATION_TECHNOLOGY_AND_SERVICES"
       ],
       "job_title": [
-        "CHRO"
+        "CHRO",
+        "VP People"
       ],
       "hs_analytics_source": [
-        "OFFLINE"
+        "ORGANIC_SEARCH",
+        "DIRECT_TRAFFIC"
+      ],
+      "country": [
+        "United States",
+        "United Kingdom"
+      ],
+      "employee_bucket": [
+        "4001-5000"
       ]
     },
-    "prediction_reasoning": "Deals closed in the INFORMATION_TECHNOLOGY_AND_SERVICES sector, especially with CHROs involved, tend to have a balance of good contract value and moderate sales cycles, particularly effective through offline engagement.",
+    "prediction_reasoning": "Large IT firms with executive-level HR contacts sourcing deals through organic or direct channels generally see high values with reasonable sales cycle durations, indicating good revenue velocity.",
     "measured_metrics": null,
     "status": "no_data",
     "message": "Segment did not meet the minimum deal count (5) or had no deals matching the filter criteria."
@@ -108,47 +121,21 @@
         "PHARMACEUTICALS"
       ],
       "job_title": [
-        "CHRO"
-      ],
-      "hs_analytics_source": [
-        "OFFLINE"
-      ]
-    },
-    "prediction_reasoning": "PHARMACEUTICALS industry deals involving CHRO roles have reported quick sales cycles and strong contract values, demonstrating effectiveness in offline interaction.",
-    "measured_metrics": null,
-    "status": "no_data",
-    "message": "Segment did not meet the minimum deal count (5) or had no deals matching the filter criteria."
-  },
-  {
-    "filter": {
-      "industry": [
-        "FOOD_BEVERAGES"
-      ],
-      "job_title": [
-        "People Analytics Lead"
-      ],
-      "hs_analytics_source": [
-        "OFFLINE"
-      ]
-    },
-    "prediction_reasoning": "Deals with People Analytics Leads in the FOOD_BEVERAGES sector reflect a trend of combining strategic HR insights with efficient offline sale execution, yielding quick closures.",
-    "measured_metrics": null,
-    "status": "no_data",
-    "message": "Segment did not meet the minimum deal count (5) or had no deals matching the filter criteria."
-  },
-  {
-    "filter": {
-      "industry": [
-        "RETAIL"
-      ],
-      "job_title": [
         "Head of Talent"
       ],
       "hs_analytics_source": [
-        "OFFLINE"
+        "EMAIL_MARKETING",
+        "DIRECT_TRAFFIC"
+      ],
+      "country": [
+        "United Kingdom",
+        "United States"
+      ],
+      "employee_bucket": [
+        "1001-2000"
       ]
     },
-    "prediction_reasoning": "The RETAIL industry deals featured in the context demonstrate that engaging Heads of Talent through offline channels leads to substantial deal sizes and decent sales cycles.",
+    "prediction_reasoning": "The pharmaceutical industry often involves high-value specialized deals, where relationships with Heads of Talent and direct communication strategies can quickly convert leads into won deals.",
     "measured_metrics": null,
     "status": "no_data",
     "message": "Segment did not meet the minimum deal count (5) or had no deals matching the filter criteria."
