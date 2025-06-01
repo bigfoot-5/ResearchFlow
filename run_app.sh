@@ -53,6 +53,28 @@ mkdir -p cognition_engine/data
 mkdir -p cognition_engine/chroma_db
 mkdir -p cognition_engine/chroma_db_deals
 
+# Step 1: Load raw data from HubSpot into the database
+echo "Loading raw data from HubSpot into the database..."
+python3 cognition_engine/src/database/hubspot_etl.py
+if [ $? -ne 0 ]; then
+    echo "Error: Failed to load data from HubSpot. Exiting."
+    exit 1
+fi
+
+# Step 2: Run dbt to structure the database
+echo "Running dbt to structure the database..."
+cd gtmos
+if ! command_exists "dbt"; then
+    echo "Error: dbt is not installed. Please install dbt (e.g., 'pip install dbt-core')."
+    exit 1
+fi
+dbt run
+if [ $? -ne 0 ]; then
+    echo "Error: dbt run failed. Exiting."
+    exit 1
+fi
+cd ..
+
 # Function to kill background processes on exit
 cleanup() {
     echo "Shutting down processes..."
