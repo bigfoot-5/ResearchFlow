@@ -4,6 +4,10 @@ import pandas as pd
 import json
 import time
 from datetime import datetime
+import sys
+import os
+import asyncio
+import hashlib
 
 from components.agent_workbench import render_agent_workbench
 from components.icp_triangulation import render_icp_triangulation_matrix, display_triangulation_matrix
@@ -12,12 +16,23 @@ from components.icp_segmentation_agent import (
     ask_agents
 )
 
+# Add the path to import the function if needed
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../cognition_engine/scripts")))
+
+from sql_filter_predictor import predict_measure_analyze_segments, answer_question_for_filter, vectorize_deals_for_filter
 
 # --- Configuration ---
 BACKEND_URL = "http://localhost:8005"  # Updated to match backend port
 PAGE_TITLE = "Cognition Engine AI"
 PAGE_ICON = "🧠"
 LAYOUT = "wide"
+DB_CONFIG = {
+    "dbname": os.getenv("DB_NAME", "cognition_db"),
+    "user": os.getenv("DB_USER", "cognition_user"),
+    "password": os.getenv("DB_PASSWORD", "cognition_password"),
+    "host": os.getenv("DB_HOST", "localhost"),
+    "port": os.getenv("DB_PORT", "5432"),
+}
 
 # --- Page Setup ---
 st.set_page_config(page_title=PAGE_TITLE, page_icon=PAGE_ICON, layout=LAYOUT)
@@ -429,102 +444,119 @@ elif selected_feature == "ICP Triangulation Matrix":
     render_icp_triangulation_matrix(BACKEND_URL)
     # display_triangulation_matrix(BACKEND_URL)
 
-
-
 elif selected_feature == "ICP Segmentation":
     st.header("📊 ICP Segmentation")
-    st.write("Explore segmentation metrics across dimensions. Ask follow-up questions for deeper insights.")
+    st.write("Run the segmentation agent and explore AI-predicted segments and their top relevant open deals.")
 
-    # Define queries for each segment
-    queries = {
-        "Geo + Size": "SELECT * FROM metrics_by_geo_size LIMIT 10;",
-        "Industry + Geo": "SELECT * FROM metrics_by_industry_geo LIMIT 10;",
-        "Industry + Size": "SELECT * FROM metrics_by_industry_size LIMIT 10;",
-        "Geo + Size + Industry": "SELECT * FROM metrics_by_industry_geo_size LIMIT 10;"
-    }
+    # --- Caching for results ---
+    if 'segments_result' not in st.session_state:
+        st.session_state['segments_result'] = None
+        st.session_state['segments_error'] = None
 
-    # Display each table
-    for name, query in queries.items():
-        with st.expander(f"📁 {name} Segmentation"):
-            with st.spinner(f"Querying {name}..."):
-                try:
-                    # Use the imported function directly
-                    rows = run_postgres_query(query)
-                    
-                    if isinstance(rows, dict) and "error" in rows:
-                        st.error(f"Database error: {rows['error']}")
+    def run_segmentation_agent():
+        try:
+            # extract_and_vectorize_all_deals(DB_CONFIG)
+            result = asyncio.run(predict_measure_analyze_segments())
+            st.session_state['segments_result'] = result
+            st.session_state['segments_error'] = None
+        except Exception as e:
+            st.session_state['segments_result'] = None
+            st.session_state['segments_error'] = str(e)
+
+    # Button to trigger segment generation
+    if st.button("Generate Segments", type="primary"):
+        with st.spinner("Running segmentation agent..."):
+            run_segmentation_agent()
+
+    # Option to refresh results
+    if st.session_state['segments_result']:
+        if st.button("Refresh Segments", type="secondary"):
+            with st.spinner("Re-running segmentation agent..."):
+                run_segmentation_agent()
+
+    # Error handling
+    if st.session_state['segments_error']:
+        st.error(f"Error running segmentation agent: {st.session_state['segments_error']}")
+
+    segments_result = st.session_state['segments_result']
+
+    if not segments_result or not isinstance(segments_result, dict) or "results" not in segments_result:
+        st.info("Click 'Generate Segments' to run the segmentation agent and view results.")
+    else:
+        segments_data = segments_result["results"]
+
+        # Build a display label for each segment
+        def segment_label(segment):
+            filt = segment.get("filter", {})
+            rv = segment.get("revenue_velocity", None)
+            label = ", ".join(
+                f"{k}: {', '.join(v) if isinstance(v, list) else v}"
+                for k, v in filt.items() if v
+            )
+            rv_str = f" | Revenue Velocity: {rv:.2f}" if rv is not None else ""
+            return f"{label}{rv_str}"
+
+        segment_options = [
+            (segment_label(seg), idx) for idx, seg in enumerate(segments_data)
+        ]
+
+        # Multi-select to compare multiple segments
+        selected_indices = st.multiselect(
+            "Select one or more segments to view details and top deals:",
+            options=[idx for _, idx in segment_options],
+            format_func=lambda idx: segment_options[idx][0]
+        )
+
+        if not selected_indices:
+            st.info("Select at least one segment to view details.")
+        else:
+            for selected_idx in selected_indices:
+                selected_segment = segments_data[selected_idx]
+                with st.expander(f"Segment: {segment_label(selected_segment)}", expanded=True):
+                    st.markdown(f"**Filter:**\n```json\n{json.dumps(selected_segment.get('filter', {}), indent=2)}\n```")
+                    st.markdown(f"**Prediction Reasoning:** {selected_segment.get('prediction_reasoning', 'N/A')}")
+                    rv = selected_segment.get('revenue_velocity', None)
+                    if rv is not None:
+                        if rv >= 1:
+                            st.success(f"Revenue Velocity: {rv:.2f}")
+                        elif rv > 0:
+                            st.info(f"Revenue Velocity: {rv:.2f}")
+                        else:
+                            st.warning(f"Revenue Velocity: {rv:.2f}")
                     else:
-                        df = pd.DataFrame(rows)
-                        st.dataframe(df, use_container_width=True)
-                except Exception as e:
-                    st.error(f"Error executing query: {str(e)}")
+                        st.warning("Revenue Velocity: N/A")
 
-    # Follow-up natural language input
-    st.markdown("---")
-    st.subheader("🔍 Ask a follow-up question")
-    user_question = st.text_input("Enter a business question to analyze the segments further:")
-
-    if user_question:
-        with st.spinner("Gathering insights from all segments..."):
-            # Use the new ask_agents function that properly initializes the chat
-            chat_result = ask_agents(user_question)
-            
-            # Extract content from the ChatResult object
-            response_text = ""
-            
-            try:
-                # Method 1: Check if there's a summary
-                if hasattr(chat_result, 'summary') and chat_result.summary:
-                    response_text = chat_result.summary
-                
-                # Method 2: Get the chat history
-                elif hasattr(chat_result, 'chat_history') and chat_result.chat_history:
-                    messages = chat_result.chat_history
-                    
-                    # Find the last meaningful message from an agent (not user)
-                    for message in reversed(messages):
-                        content = message.get('content', '').strip()
-                        role = message.get('role', '')
-                        name = message.get('name', '')
-                        
-                        # Look for assistant/agent responses that are substantial
-                        if (content and 
-                            role in ['assistant'] and 
-                            len(content) > 50 and  # Meaningful length
-                            not content.startswith('I need to') and
-                            'run_postgres_query' not in content):
-                            response_text = content
-                            break
-                
-                # Method 3: Try to get the last message directly
-                elif hasattr(chat_result, 'last_message') and chat_result.last_message:
-                    if isinstance(chat_result.last_message, dict):
-                        response_text = chat_result.last_message.get('content', '')
+                    # Show top 3 relevant open deals
+                    top_deals = selected_segment.get("top_relevant_open_deals", [])
+                    st.markdown("**Top 3 Relevant Open Deals:**")
+                    if not top_deals:
+                        st.info("No relevant open deals found for this segment.")
                     else:
-                        response_text = str(chat_result.last_message)
-                
-                # Method 4: Check cost and summary
-                elif hasattr(chat_result, 'cost') and hasattr(chat_result, 'summary'):
-                    # If there's cost, it means the chat ran, so try to extract any meaningful output
-                    response_text = getattr(chat_result, 'summary', '') or str(chat_result)
-                
-            except Exception as e:
-                st.error(f"Error extracting response: {str(e)}")
-                response_text = "Unable to extract response from the agent."
-            
-            # Display the response
-            if response_text and response_text.strip():
-                st.markdown("#### 💡 Insight")
-                st.write(response_text)
-            else:
-                st.warning("No meaningful response received from the agent.")
-                
-                # Debug option
-                with st.expander("Debug: Show chat result"):
-                    st.write("Chat result type:", type(chat_result))
-                    st.write("Chat result attributes:", dir(chat_result))
-                    if hasattr(chat_result, 'chat_history'):
-                        st.write("Chat history:", chat_result.chat_history)
-                    if hasattr(chat_result, 'summary'):
-                        st.write("Summary:", chat_result.summary)
-                    st.write("Raw result:", chat_result)
+                        deals_df = pd.DataFrame(top_deals)
+                        st.dataframe(deals_df, use_container_width=True, hide_index=True)
+
+                    # --- Chat box for this segment ---
+                    filter_dict = selected_segment.get("filter", {})
+                    filter_id = hashlib.md5(json.dumps(filter_dict, sort_keys=True).encode()).hexdigest()
+                    chat_key = f"chat_input_{filter_id}"
+                    answer_key = f"chat_answer_{filter_id}"
+                    vectorized_key = f"vectorized_{filter_id}"
+                    user_question = st.text_input("Ask a question about this segment:", key=chat_key)
+                    if st.button("Ask", key=f"ask_btn_{filter_id}") and user_question:
+                        with st.spinner("Getting answer from LLM..."):
+                            # Vectorize deals for this filter if not already done
+                            if not st.session_state.get(vectorized_key, False):
+                                num_added = vectorize_deals_for_filter(filter_dict, filter_id)
+                                st.session_state[vectorized_key] = True
+                            answer = answer_question_for_filter(filter_id, user_question)
+                            st.session_state[answer_key] = answer
+                    if answer_key in st.session_state:
+                        st.markdown(f"**LLM Answer:**\n{st.session_state[answer_key]}")
+
+        # Download button for segments as JSON
+        st.download_button(
+            label="Download Segments as JSON",
+            data=json.dumps(segments_data, indent=2),
+            file_name="icp_segments.json",
+            mime="application/json"
+        )

@@ -5,6 +5,7 @@ import json
 import asyncio
 from typing import Dict, List, Any, Sequence, AsyncGenerator, Optional
 from datetime import datetime, timedelta
+import hashlib
 
 # Load environment variables from .env file
 from dotenv import load_dotenv
@@ -82,7 +83,7 @@ EMPLOYEE_BUCKETS = [
 MIN_DEAL_COUNT = 5 # Minimum deals for a segment to be considered statistically significant
 
 # --- ChromaDB Initialization ---
-CHROMA_DB_PATH = os.path.join(os.getcwd(), "chroma_db_deals")
+CHROMA_DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../chroma_db_deals"))
 COLLECTION_NAME: str = "all_deals_context"
 
 # Global variables to hold initialized ChromaDB components
@@ -226,6 +227,84 @@ def build_single_filter_condition(filter_combo: Dict[str, List[str]]) -> str:
         conditions.append(f"c.employee_bucket IN ({buckets})")
 
     return " AND ".join(conditions) if conditions else "TRUE" # Return TRUE if no filters specified
+
+# --- Relevance Scoring Function ---
+def calculate_relevance_score(deal_data: Dict[str, Any], filter_combo: Dict[str, List[str]]) -> float:
+    """
+    Calculates a relevance score for a deal against a filter combination based on predefined weights.
+    Assumes deal_data contains keys like 'industry', 'job_title', 'country', 'hs_analytics_source', 'employee_bucket'.
+    """
+    # Define weights for each dimension
+    weights = {
+        'industry': 0.30,
+        'job_title': 0.25,
+        'country': 0.15,
+        'hs_analytics_source': 0.10,
+        'employee_bucket': 0.20,
+    }
+
+    score = 0.0
+
+    # Check for matching values in each dimension and add corresponding weight
+    for dimension, weight in weights.items():
+        # Get the filter values for this dimension, default to empty list if not in filter_combo
+        filter_values = filter_combo.get(dimension, [])
+
+        # Get the deal's value for this dimension, default to None if not in deal_data
+        deal_value = deal_data.get(dimension)
+
+        # If deal_value is not None and matches any value in the filter_values list
+        # (Perform case-insensitive comparison for strings for robustness)
+        if deal_value is not None and any(str(deal_value).lower() == str(fv).lower() for fv in filter_values):
+             score += weight
+
+    return score
+
+# --- Function to Fetch Open Deals ---
+async def fetch_open_deals(db_config: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """
+    Fetches details for all open deals (not closedwon or closedlost).
+    """
+    print("Fetching open deals...")
+    conn = None
+    cursor = None
+    open_deals = []
+    try:
+        conn = psycopg2.connect(**db_config)
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+
+        # Query to select open deals and relevant company/contact data
+        query = f"""
+            SELECT
+                d.id AS deal_id,
+                d.deal_name,
+                d.amount,
+                d.dealstage,
+                d.closedate,
+                c.company_id,
+                d.company_name,
+                c.industry,
+                c.country,
+                c.employee_bucket,
+                ct.job_title -- Get job title from one associated contact (simplistic)
+            FROM dim_deals d
+            JOIN dim_companies c ON d.company_id = c.company_id
+            LEFT JOIN dim_contacts ct ON d.company_id = ct.company_id
+            WHERE d.dealstage NOT IN ('closedwon', 'closedlost')
+            LIMIT 1000; -- Limit to avoid fetching too many open deals at once
+        """
+        cursor.execute(query)
+        open_deals = cursor.fetchall()
+        print(f"Fetched {len(open_deals)} open deals.")
+
+    except Exception as e:
+        print(f"Error fetching open deals: {e}")
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+    return open_deals
 
 # Access global ChromaDB variables (assumed to be set by populate_vector_db.py or equivalent)
 # These need to be imported or accessed carefully to avoid errors if not set.
@@ -760,99 +839,119 @@ async def predict_measure_analyze_segments():
     db_agent = DatabaseQueryAgent(name="DBQueryAgent", db_config=DB_CONFIG)
     analysis_agent = RevenueVelocityAnalysisAgent(name="AnalysisAgent", openai_model="gpt-4o", ollama_model="gemma3:1b")
 
-    # Step 1: Use LLM to predict promising filter combinations
-    print(f"\nRequesting filter predictions from {filter_agent.name}...")
-    filter_response = await filter_agent.on_messages(
-        [UserMessage(content="Predict segments with high revenue velocity.", source="user")],
-        CancellationToken()
-    )
-
-    if not filter_response or not filter_response.chat_message:
-        print(f"No valid response received from {filter_agent.name}.")
-        return # Exit the async function
-
-    try:
-        filter_data = json.loads(filter_response.chat_message.content)
-        if filter_data.get("status") != "success":
-            print(f"Error from {filter_agent.name}: {filter_data.get('message')}")
-            return # Exit the async function
-        predicted_filters_with_reasoning = filter_data.get("predicted_filters", [])
-        print(f"Received {len(predicted_filters_with_reasoning)} predicted filter combinations.")
-        if not predicted_filters_with_reasoning:
-            print("No filter combinations were predicted. Aborting workflow.")
-            return # Exit the async function
-
-    except json.JSONDecodeError:
-        print("Error decoding predicted filters from LLM response.")
-        return # Exit the async function
-
-    # Step 2: For each predicted filter combination, query the database to get measured metrics
+    max_attempts = 10
+    attempt = 0
+    found_valid_segment = False
+    feedback_message = None
+    final_result = None
+    predicted_filters_with_reasoning = []
     tested_segments_results = []
-    print("\n--- Measuring Performance of Predicted Segments ---")
-    for idx, segment_prediction in enumerate(predicted_filters_with_reasoning, start=1):
-        filter_combo = segment_prediction.get("filter", {})
-        prediction_reasoning = segment_prediction.get("reasoning", "No reasoning provided.")
 
-        if not filter_combo or not any(filter_combo.values()):
-            print(f"\nSkipping predicted segment {idx}: Empty filter combination.")
-            tested_segments_results.append({
-                "filter": filter_combo,
-                "reasoning": prediction_reasoning,
-                "db_status": "skipped",
-                "db_message": "Empty filter combination predicted.",
-                "metrics": None
-            })
-            continue
+    while attempt < max_attempts and not found_valid_segment:
+        attempt += 1
+        print(f"\n--- Attempt {attempt} to find valid segments ---")
+        # Step 1: Use LLM to predict promising filter combinations
+        if feedback_message:
+            user_prompt = f"Predict segments with high revenue velocity. Previous attempt feedback: {feedback_message}"
+        else:
+            user_prompt = "Predict segments with high revenue velocity."
+        filter_response = await filter_agent.on_messages(
+            [UserMessage(content=user_prompt, source="user")],
+            CancellationToken()
+        )
 
-        print(f"\nTesting predicted segment {idx}: Filter={filter_combo} (Reasoning: {prediction_reasoning[:100]}...)")
+        if not filter_response or not filter_response.chat_message:
+            print(f"No valid response received from {filter_agent.name}.")
+            break # Exit the loop
 
-        db_request_message = UserMessage(content=json.dumps(filter_combo), source=filter_agent.name)
-        db_response = await db_agent.on_messages([db_request_message], CancellationToken())
+        try:
+            filter_data = json.loads(filter_response.chat_message.content)
+            if filter_data.get("status") != "success":
+                print(f"Error from {filter_agent.name}: {filter_data.get('message')}")
+                break # Exit the loop
+            predicted_filters_with_reasoning = filter_data.get("predicted_filters", [])
+            print(f"Received {len(predicted_filters_with_reasoning)} predicted filter combinations.")
+            if not predicted_filters_with_reasoning:
+                print("No filter combinations were predicted. Aborting workflow.")
+                break # Exit the loop
+        except json.JSONDecodeError:
+            print("Error decoding predicted filters from LLM response.")
+            break # Exit the loop
 
-        if db_response and db_response.chat_message:
-            try:
-                db_result = json.loads(db_response.chat_message.content)
+        # Step 2: For each predicted filter combination, query the database to get measured metrics
+        tested_segments_results = []
+        print("\n--- Measuring Performance of Predicted Segments ---")
+        for idx, segment_prediction in enumerate(predicted_filters_with_reasoning, start=1):
+            filter_combo = segment_prediction.get("filter", {})
+            prediction_reasoning = segment_prediction.get("reasoning", "No reasoning provided.")
+
+            if not filter_combo or not any(filter_combo.values()):
+                print(f"\nSkipping predicted segment {idx}: Empty filter combination.")
                 tested_segments_results.append({
                     "filter": filter_combo,
                     "reasoning": prediction_reasoning,
-                    "db_status": db_result.get("status"),
-                    "db_message": db_result.get("message"),
-                    "metrics": db_result.get("metrics")
+                    "db_status": "skipped",
+                    "db_message": "Empty filter combination predicted.",
+                    "metrics": None
                 })
-                print(f"  DB Query Status: {db_result.get('status')}")
-                if db_result.get('status') == 'success' and db_result.get('metrics'):
-                    metrics = db_result.get('metrics')
-                    total = metrics.get('total_deals', 0)
-                    won = metrics.get('won_deals', 0)
-                    amount = metrics.get('avg_amount', 0)
-                    days = metrics.get('avg_days_to_close', 0)
-                    measured_rv = analysis_agent.calculate_revenue_velocity(total, won, amount, days)
-                    print(f"  Measured Metrics: Total Deals={total}, Won Deals={won}, ACV=${amount:.2f}, Sales Cycle={days:.2f} days, Measured RV={measured_rv:.2f}")
-                elif db_result.get('status') == 'success' and not db_result.get('metrics'):
-                     print(f"  {db_result.get('message')}")
+                continue
 
-            except json.JSONDecodeError:
-                print(f"  Error decoding DB response for segment {idx}.")
+            print(f"\nTesting predicted segment {idx}: Filter={filter_combo} (Reasoning: {prediction_reasoning[:100]}...)")
+
+            db_request_message = UserMessage(content=json.dumps(filter_combo), source=filter_agent.name)
+            db_response = await db_agent.on_messages([db_request_message], CancellationToken())
+
+            if db_response and db_response.chat_message:
+                try:
+                    db_result = json.loads(db_response.chat_message.content)
+                    tested_segments_results.append({
+                        "filter": filter_combo,
+                        "reasoning": prediction_reasoning,
+                        "db_status": db_result.get("status"),
+                        "db_message": db_result.get("message"),
+                        "metrics": db_result.get("metrics")
+                    })
+                    print(f"  DB Query Status: {db_result.get('status')}")
+                    if db_result.get('status') == 'success' and db_result.get('metrics'):
+                        metrics = db_result.get('metrics')
+                        total = metrics.get('total_deals', 0)
+                        won = metrics.get('won_deals', 0)
+                        amount = metrics.get('avg_amount', 0)
+                        days = metrics.get('avg_days_to_close', 0)
+                        measured_rv = analysis_agent.calculate_revenue_velocity(total, won, amount, days)
+                        print(f"  Measured Metrics: Total Deals={total}, Won Deals={won}, ACV=${amount:.2f}, Sales Cycle={days:.2f} days, Measured RV={measured_rv:.2f}")
+                except json.JSONDecodeError:
+                    print(f"  Error decoding DB response for segment {idx}.")
+                    tested_segments_results.append({
+                        "filter": filter_combo,
+                        "reasoning": prediction_reasoning,
+                        "db_status": "error",
+                        "db_message": "Invalid JSON response from DatabaseQueryAgent",
+                        "metrics": None
+                    })
+            else:
+                print(f"No valid response received from {db_agent.name} for segment {idx}.")
                 tested_segments_results.append({
                     "filter": filter_combo,
                     "reasoning": prediction_reasoning,
                     "db_status": "error",
-                    "db_message": "Invalid JSON response from DatabaseQueryAgent",
+                    "db_message": "No valid response from DatabaseQueryAgent",
                     "metrics": None
                 })
+
+        # Check if any segment has measured_metrics (i.e., metrics is not None)
+        found_valid_segment = any(seg.get("metrics") for seg in tested_segments_results)
+        if not found_valid_segment:
+            # Prepare feedback for the LLM
+            failed_filters = [seg["filter"] for seg in tested_segments_results]
+            feedback_message = f"None of the predicted segments had at least 5 deals. Previous filters tried: {json.dumps(failed_filters)}. Please suggest broader or alternative segments."
+            print("No valid segments found. Will prompt LLM again with feedback.")
         else:
-            print(f"No valid response received from {db_agent.name} for segment {idx}.")
-            tested_segments_results.append({
-                "filter": filter_combo,
-                "reasoning": prediction_reasoning,
-                "db_status": "error",
-                "db_message": "No valid response from DatabaseQueryAgent",
-                "metrics": None
-            })
+            print("At least one valid segment found with measured metrics.")
 
     # Step 3: Send tested segments results to Analysis Agent for final analysis and comparison
     if tested_segments_results:
-        analyzable_results = [res for res in tested_segments_results if res.get("db_status") not in ["skipped", "error"]]
+        analyzable_results = [res for res in tested_segments_results if res.get("db_status") not in ["skipped", "error", "no_data"]]
         if analyzable_results:
             print(f"\n--- Analyzing Measured Performance ---")
             print(f"Sending results of {len(analyzable_results)} tested segments to {analysis_agent.name} for final analysis...")
@@ -889,9 +988,90 @@ async def predict_measure_analyze_segments():
             else:
                 print(f"No valid response received from {analysis_agent.name}.")
         else:
-            print("\nNo segments with valid database results to analyze.")
+            print("\nNo segments with measured data met criteria for analysis, or no segments were predicted.")
+
+    # --- Step 4: Identify and Score Relevant Open Deals ---
+    print("\n--- Identifying Relevant Open Deals ---")
+    # Fetch all open deals
+    open_deals = await fetch_open_deals(DB_CONFIG)
+    relevant_open_deals_by_segment = {}
+
+    if open_deals and predicted_filters_with_reasoning:
+        print(f"Scoring {len(open_deals)} open deals against {len(predicted_filters_with_reasoning)} predicted segments...")
+        for segment_prediction in predicted_filters_with_reasoning:
+            filter_combo = segment_prediction.get("filter", {})
+            segment_key = json.dumps(filter_combo, sort_keys=True) # Use sorted JSON as a unique key for the segment
+            relevant_deals_for_segment = []
+
+            print(f"\n-- Scoring open deals for segment: {filter_combo} --")
+            for deal in open_deals:
+                score = calculate_relevance_score(deal, filter_combo)
+                # Log the score for debugging
+                # print(f"  Deal ID: {deal.get('deal_id')}, Score: {score:.2f}")
+                if score > 0: # Only include deals with a non-zero score (at least one match)
+                    relevant_deals_for_segment.append({
+                        "deal": deal, # Include full deal data
+                        "relevance_score": score
+                    })
+
+            # Sort relevant deals by score (highest first)
+            relevant_deals_for_segment.sort(key=lambda x: x['relevance_score'], reverse=True)
+
+            # Store top N relevant deals for this segment (e.g., top 3)
+            top_n = 3 # Limit to top 3 relevant deals as requested
+            relevant_open_deals_by_segment[segment_key] = relevant_deals_for_segment[:top_n]
+            print(f"Found {len(relevant_deals_for_segment)} open deals matching this segment filter (score > 0). Top {min(top_n, len(relevant_deals_for_segment))} relevant deals saved.")
     else:
-        print("\nNo segments were predicted or successfully tested for analysis.")
+        print("No open deals fetched or no segments predicted to score against.")
+
+    # --- Combine Results and Output ---
+    # Start building the final output structure, based on the analysis result or a default structure
+    final_output_structure = final_result if final_result is not None else {"status": "success", "analysis": "Workflow completed, but analysis step may have been skipped.", "results": []}
+
+    # Iterate through the segments in the results and add relevant open deals
+    processed_segments_for_output = []
+    for segment_data in final_output_structure.get("results", []):
+        # Create a key for lookup in relevant_open_deals_by_segment
+        filter_combo = segment_data.get("filter", {})
+        segment_key = json.dumps(filter_combo, sort_keys=True)
+
+        # Find the relevant open deals for this segment
+        relevant_deals = relevant_open_deals_by_segment.get(segment_key, [])
+
+        # Add the top relevant open deals to the segment data
+        # We will simplify the deal objects to just include key info for JSON serialization
+        top_relevant_open_deals_simplified = [{
+            "deal_id": d['deal'].get('deal_id'),
+            "deal_name": d['deal'].get('deal_name'),
+            "dealstage": d['deal'].get('dealstage'),
+            "amount": d['deal'].get('amount'),
+            "relevance_score": d['relevance_score']
+        } for d in relevant_deals]
+
+        segment_data["top_relevant_open_deals"] = top_relevant_open_deals_simplified
+
+        # Add top-level revenue_velocity field
+        measured_metrics = segment_data.get("measured_metrics")
+        if measured_metrics and isinstance(measured_metrics, dict):
+            segment_data["revenue_velocity"] = measured_metrics.get("revenue_velocity")
+        else:
+            segment_data["revenue_velocity"] = None
+
+        processed_segments_for_output.append(segment_data)
+
+    # Replace the original results with the processed ones
+    final_output_structure["results"] = processed_segments_for_output
+
+    # --- Final Output ---
+    print("\n--- Final Combined Output ---")
+    # The structure should now be JSON serializable since we simplified the deal objects
+    try:
+        print(json.dumps(final_output_structure, indent=2))
+        return final_output_structure
+    except TypeError as e:
+        # This catch is a fallback, should not be hit if simplification worked
+        print(f"Error serializing final output structure: {e}")
+        print("Final output structure:", final_output_structure)
 
     print("\nWorkflow finished.")
 
@@ -906,3 +1086,179 @@ if __name__ == "__main__":
 
     # Run the main asynchronous workflow
     asyncio.run(predict_measure_analyze_segments())
+
+def vectorize_deals_for_filter(filter_combo: dict, filter_id: str) -> int:
+    """
+    Extracts deals matching the filter_combo and stores them in ChromaDB with filter_id in metadata.
+    Returns the number of documents added.
+    """
+    global chroma_client, embeddings_model, all_deals_collection
+    if not chroma_client or not embeddings_model or all_deals_collection is None:
+        print("ChromaDB client, embedding model, or collection not initialized.")
+        return 0
+
+    where_condition = build_single_filter_condition(filter_combo)
+    conn = None
+    cursor = None
+    try:
+        conn = psycopg2.connect(**DB_CONFIG)
+        cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        query = f"""
+            SELECT
+                d.id AS deal_id,
+                d.deal_name,
+                d.amount,
+                d.dealstage,
+                d.closedate,
+                d.days_to_close,
+                d.hs_analytics_source,
+                c.company_id,
+                c.industry,
+                c.country,
+                c.employee_bucket,
+                c.numberofemployees,
+                d.company_name,
+                ct.id AS contact_id,
+                ct.first_name,
+                ct.last_name,
+                ct.job_title
+            FROM dim_deals d
+            JOIN dim_companies c ON d.company_id = c.company_id
+            LEFT JOIN dim_contacts ct ON d.company_id = ct.company_id
+            WHERE {where_condition}
+        """
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        documents_to_add = []
+        ids_to_add = []
+        metadatas_to_add = []
+        for row in rows:
+            doc_id = f"filter_{filter_id}_deal_{row['deal_id']}"
+            if row['contact_id']:
+                doc_id += f"_contact_{row['contact_id']}"
+            doc_content = (
+                f"Deal: '{row['deal_name']}' (ID: {row['deal_id']}). "
+                f"Status: {row['dealstage']}, Amount: ${row['amount'] or 0:.2f}, "
+                f"Sales Cycle: {row['days_to_close'] or 0:.2f} days. "
+                f"Source: {row['hs_analytics_source'] or 'N/A'}. "
+                f"Company: '{row['company_name']}' (ID: {row['company_id']}, Industry: {row['industry'] or 'N/A'}, Country: {row.get('country') or 'N/A'}, Employee Bucket: {row.get('employee_bucket') or 'N/A'}, Employees: {row['numberofemployees'] or 'N/A'}). "
+                f"Contact: {row['first_name'] or ''} {row['last_name'] or ''} (Job Title: {row['job_title'] or 'N/A'}, ID: {row['contact_id'] or 'N/A'})."
+            )
+            metadata = {
+                "filter_id": filter_id,
+                "deal_id": str(row['deal_id']),
+                "company_id": str(row['company_id']),
+                "contact_id": str(row['contact_id']) if row['contact_id'] is not None else "N/A",
+                "dealstage": row['dealstage'] if row['dealstage'] is not None else "N/A",
+                "amount": row['amount'] if row['amount'] is not None else 0.0,
+                "days_to_close": row['days_to_close'] if row['days_to_close'] is not None else 0.0,
+                "hs_analytics_source": row['hs_analytics_source'] if row['hs_analytics_source'] is not None else "N/A",
+                "industry": row['industry'] if row['industry'] is not None else "N/A",
+                "country": row['country'] if row['country'] is not None else "N/A",
+                "employee_bucket": row['employee_bucket'] if row['employee_bucket'] is not None else "N/A",
+                "numberofemployees": row['numberofemployees'] if row['numberofemployees'] is not None else 0,
+                "job_title": row['job_title'] if row['job_title'] is not None else "N/A"
+            }
+            documents_to_add.append(doc_content)
+            ids_to_add.append(doc_id)
+            metadatas_to_add.append(metadata)
+        if documents_to_add:
+            batch_size = 500
+            for i in range(0, len(documents_to_add), batch_size):
+                batch_docs = documents_to_add[i:i+batch_size]
+                batch_ids = ids_to_add[i:i+batch_size]
+                batch_metadatas = metadatas_to_add[i:i+batch_size]
+                all_deals_collection.add(
+                    documents=batch_docs,
+                    ids=batch_ids,
+                    metadatas=batch_metadatas
+                )
+            print(f"Added {len(documents_to_add)} documents for filter_id {filter_id} to ChromaDB.")
+        else:
+            print(f"No deals found for filter_id {filter_id}.")
+        return len(documents_to_add)
+    except Exception as e:
+        print(f"Error vectorizing deals for filter: {e}")
+        return 0
+    finally:
+        if cursor:
+            cursor.close()
+        if conn:
+            conn.close()
+
+def answer_question_for_filter(filter_id: str, question: str, n_results: int = 10) -> str:
+    """
+    Retrieves docs for filter_id from ChromaDB, uses LLM to answer the question using those docs as context.
+    Returns the LLM's answer as a string.
+    """
+    global all_deals_collection
+    if all_deals_collection is None:
+        print("ChromaDB collection not initialized.")
+        return ""
+    # Query ChromaDB for documents with this filter_id
+    results = all_deals_collection.query(
+        query_texts=[question],
+        n_results=n_results,
+        where={"filter_id": filter_id},
+        include=["documents", "metadatas"]
+    )
+    docs = results.get("documents", [[]])[0]
+    metadatas = results.get("metadatas", [[]])[0]
+    if not docs:
+        print(f"No documents found for filter_id {filter_id}.")
+        return "No relevant documents found for this filter."
+    # Build context for LLM
+    context = "\n\n".join(docs)
+    prompt = f"""
+You are an expert sales analyst. Use ONLY the following context (deals) to answer the user's question. If the answer is not in the context, say so.
+
+Context:
+{context}
+
+Question: {question}
+Answer as a helpful analyst:
+"""
+    # Use the same LLM as FilterPredictionAgent
+    openai_api_key = os.getenv("OPENAI_API_KEY")
+    llm = None
+    if openai_api_key:
+        try:
+            llm = ChatOpenAI(api_key=openai_api_key, model="gpt-4o")
+        except Exception as e:
+            print(f"Failed to initialize OpenAI model: {e}")
+    if llm is None:
+        try:
+            llm = ChatOllama(model="gemma3:1b", base_url="http://localhost:11434")
+        except Exception as e:
+            print(f"Failed to initialize Ollama model: {e}")
+            return "No LLM available."
+    try:
+        response = llm.invoke(prompt)
+        return response.content
+    except Exception as e:
+        print(f"Error invoking LLM: {e}")
+        return "Error invoking LLM."
+
+# --- TEST BLOCK ---
+if __name__ == "__main__":
+    # Example: Use the first predicted filter from the FilterPredictionAgent
+    import json
+    import random
+    print("\n--- TEST: Vectorize deals for a sample filter and ask a question ---")
+    # Example filter (replace with a real one from your workflow)
+    sample_filter = {
+        "industry": ["PHARMACEUTICALS"],
+        "job_title": ["Head of Talent"],
+        "hs_analytics_source": ["EMAIL_MARKETING"]
+    }
+    # Create a unique filter_id (hash of filter dict)
+    filter_id = hashlib.md5(json.dumps(sample_filter, sort_keys=True).encode()).hexdigest()
+    num_added = vectorize_deals_for_filter(sample_filter, filter_id)
+    print(f"Number of deals vectorized for filter: {num_added}")
+    if num_added > 0:
+        # Ask a sample question
+        sample_question = "What is the average deal amount for this segment?"
+        answer = answer_question_for_filter(filter_id, sample_question)
+        print(f"\nQ: {sample_question}\nA: {answer}")
+    else:
+        print("No deals found for this filter. Cannot test LLM Q&A.")

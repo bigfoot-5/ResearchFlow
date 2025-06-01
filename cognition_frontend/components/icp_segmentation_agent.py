@@ -2,7 +2,8 @@ import psycopg2
 from autogen import ConversableAgent
 from autogen import GroupChat, GroupChatManager
 import os
-
+from dotenv import load_dotenv
+load_dotenv()
 your_llm_config = {
     "config_list": [
         {

@@ -39,7 +39,7 @@ DB_CONFIG = {
 
 # --- Vector Database Setup ---
 # Using a different path or name to distinguish from segment summaries if needed
-CHROMA_DB_PATH = os.path.join(os.getcwd(), "chroma_db_deals")
+CHROMA_DB_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "../chroma_db_deals"))
 COLLECTION_NAME = "all_deals_context"
 
 # Initialize ChromaDB client and embedding function
@@ -255,16 +255,16 @@ async def extract_and_vectorize_all_deals(db_config: Dict[str, Any]):
              metadata = {
                  "deal_id": str(row['deal_id']),
                  "company_id": str(row['company_id']),
-                 "contact_id": str(row['contact_id']) if row['contact_id'] else None,
-                 "dealstage": row['dealstage'],
-                 "amount": row['amount'],
-                 "days_to_close": row['days_to_close'],
-                 "hs_analytics_source": row['hs_analytics_source'],
-                 "industry": row['industry'],
-                 "country": row['country'],
-                 "employee_bucket": row['employee_bucket'],
-                 "numberofemployees": row['numberofemployees'],
-                 "job_title": row['job_title']
+                 "contact_id": str(row['contact_id']) if row['contact_id'] is not None else "N/A",
+                 "dealstage": row['dealstage'] if row['dealstage'] is not None else "N/A",
+                 "amount": row['amount'] if row['amount'] is not None else 0.0,
+                 "days_to_close": row['days_to_close'] if row['days_to_close'] is not None else 0.0,
+                 "hs_analytics_source": row['hs_analytics_source'] if row['hs_analytics_source'] is not None else "N/A",
+                 "industry": row['industry'] if row['industry'] is not None else "N/A",
+                 "country": row['country'] if row['country'] is not None else "N/A",
+                 "employee_bucket": row['employee_bucket'] if row['employee_bucket'] is not None else "N/A",
+                 "numberofemployees": row['numberofemployees'] if row['numberofemployees'] is not None else 0,
+                 "job_title": row['job_title'] if row['job_title'] is not None else "N/A"
              }
 
              documents_to_add.append(doc_content)

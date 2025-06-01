@@ -1,0 +1,152 @@
+[
+  {
+    "filter": {
+      "industry": [
+        "INFORMATION_TECHNOLOGY_AND_SERVICES"
+      ],
+      "job_title": [
+        "VP People",
+        "CHRO"
+      ],
+      "hs_analytics_source": [
+        "OFFLINE"
+      ],
+      "country": [
+        "United Kingdom"
+      ],
+      "employee_bucket": [
+        "1-1000",
+        "4001-5000"
+      ]
+    },
+    "prediction_reasoning": "The deals in the IT and services industry, particularly with VP People and CHRO roles in the UK, have shown high amounts and quicker closing times, especially through offline sources.",
+    "measured_metrics": {
+      "total_deals": 8,
+      "won_deals": 5,
+      "win_rate": 0.62,
+      "acv": 86499.0,
+      "sales_cycle_days": 45.38,
+      "revenue_velocity": 1191.45
+    },
+    "status": "measured"
+  },
+  {
+    "filter": {
+      "industry": [
+        "FOOD_BEVERAGES"
+      ],
+      "job_title": [
+        "VP People",
+        "Head of Talent"
+      ],
+      "hs_analytics_source": [
+        "OFFLINE"
+      ],
+      "country": [
+        "United Kingdom"
+      ],
+      "employee_bucket": [
+        "1001-2000",
+        "2001-3000"
+      ]
+    },
+    "prediction_reasoning": "In the food and beverages sector, deals with VP People and Head of Talent consistently reach closure at significant amounts, benefitting from established offline relationships and mid-sized organizations.",
+    "measured_metrics": null,
+    "status": "no_data",
+    "message": "Segment did not meet the minimum deal count (5) or had no deals matching the filter criteria."
+  },
+  {
+    "filter": {
+      "industry": [
+        "ACCOUNTING"
+      ],
+      "job_title": [
+        "HR Director",
+        "VP People"
+      ],
+      "hs_analytics_source": [
+        "OFFLINE"
+      ],
+      "country": [
+        "United Kingdom"
+      ],
+      "employee_bucket": [
+        "1001-2000"
+      ]
+    },
+    "prediction_reasoning": "Accounting deals targeting HR Directors and VPs have high potential when utilizing offline channels, particularly in organizations with an employee size that allows flexibility and resource for adoption.",
+    "measured_metrics": null,
+    "status": "no_data",
+    "message": "Segment did not meet the minimum deal count (5) or had no deals matching the filter criteria."
+  },
+  {
+    "filter": {
+      "industry": [
+        "PHARMACEUTICALS"
+      ],
+      "job_title": [
+        "Head of Talent"
+      ],
+      "hs_analytics_source": [
+        "OFFLINE"
+      ],
+      "country": [
+        "United Kingdom"
+      ],
+      "employee_bucket": [
+        "1001-2000"
+      ]
+    },
+    "prediction_reasoning": "The pharmaceutical industry deals with Heads of Talent are often large and vital, and the sector benefits from personalized offline interactions, guiding them to timely closures.",
+    "measured_metrics": null,
+    "status": "no_data",
+    "message": "Segment did not meet the minimum deal count (5) or had no deals matching the filter criteria."
+  },
+  {
+    "filter": {
+      "industry": [
+        "INFORMATION_TECHNOLOGY_AND_SERVICES"
+      ],
+      "job_title": [
+        "VP People",
+        "CHRO"
+      ],
+      "hs_analytics_source": [
+        "OFFLINE"
+      ],
+      "country": [
+        "United Kingdom"
+      ],
+      "employee_bucket": [
+        "4001-5000"
+      ]
+    },
+    "prediction_reasoning": "Large IT firms in the UK with HR decision-makers have shown potential for high revenue velocity, as these firms typically have significant budgets and a pressing need for technological advancements.",
+    "measured_metrics": null,
+    "status": "no_data",
+    "message": "Segment did not meet the minimum deal count (5) or had no deals matching the filter criteria."
+  },
+  {
+    "filter": {
+      "industry": [
+        "RETAIL"
+      ],
+      "job_title": [
+        "Head of Talent"
+      ],
+      "hs_analytics_source": [
+        "PAID_SEARCH"
+      ],
+      "country": [
+        "Germany"
+      ],
+      "employee_bucket": [
+        "4001-5000"
+      ]
+    },
+    "prediction_reasoning": "The retail sector with large employee bases and targeted paid search strategies can achieve fast closures, as these campaigns efficiently reach key decision-makers like Heads of Talent with compelling value propositions.",
+    "measured_metrics": null,
+    "status": "no_data",
+    "message": "Segment did not meet the minimum deal count (5) or had no deals matching the filter criteria."
+  }
+]
