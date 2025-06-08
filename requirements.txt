@@ -15,6 +15,7 @@ sqlalchemy>=1.4.23,<2.0.0
 pydantic>=2.5.2
 pydantic-settings
 psycopg2
+psycopg2-binary
 
 # === LLM & Vector Embedding ===
 langchain-core==0.3.57
