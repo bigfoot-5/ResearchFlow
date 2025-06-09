@@ -518,6 +518,12 @@ elif selected_feature == "ICP Segmentation":
                         if segment.get("reasoning"):
                             label_parts.append(f"Reason: {segment['reasoning'][:50]}...")
                         
+                        # Add revenue velocity if available
+                        metrics = segment.get("measured_metrics", {})
+                        if metrics and "revenue_velocity" in metrics:
+                            rv = metrics["revenue_velocity"]
+                            label_parts.append(f"RV: ${rv:.2f}")
+                        
                         segment_options.append({
                             "label": " | ".join(label_parts),
                             "value": json.dumps(segment)  # Store full segment data as value
@@ -535,29 +541,42 @@ elif selected_feature == "ICP Segmentation":
         # Get segment options
         segment_options = get_segment_options(segments_result)
         
-        # Multi-select to compare multiple segments
-        selected_indices = st.multiselect(
-            "Select segments to compare",
-            options=[opt["label"] for opt in segment_options],
-            format_func=lambda x: x
-        )
-        
-        # Display selected segments
-        if selected_indices:
-            for selected_label in selected_indices:
-                # Find the corresponding segment data
-                selected_segment = next(
-                    (json.loads(opt["value"]) for opt in segment_options if opt["label"] == selected_label),
-                    None
-                )
-                
-                if selected_segment:
-                    with st.expander(f"Segment Details: {selected_label}", expanded=True):
-                        st.markdown(f"**Filter:**\n```json\n{json.dumps(selected_segment.get('filter', {}), indent=2)}\n```")
-                        if selected_segment.get("reasoning"):
-                            st.markdown(f"**Reasoning:**\n{selected_segment['reasoning']}")
-                        if selected_segment.get("measured_metrics"):
-                            st.markdown(f"**Metrics:**\n```json\n{json.dumps(selected_segment['measured_metrics'], indent=2)}\n```")
+        if not segment_options:
+            st.info("No segments available to select. Please generate segments first.")
+        else:
+            # Multi-select to compare multiple segments
+            selected_indices = st.multiselect(
+                "Select segments to compare",
+                options=[opt["label"] for opt in segment_options],
+                format_func=lambda x: x
+            )
+            
+            # Display selected segments
+            if selected_indices:
+                for selected_label in selected_indices:
+                    # Find the corresponding segment data
+                    selected_segment = next(
+                        (json.loads(opt["value"]) for opt in segment_options if opt["label"] == selected_label),
+                        None
+                    )
+                    
+                    if selected_segment:
+                        with st.expander(f"Segment Details: {selected_label}", expanded=True):
+                            st.markdown(f"**Filter:**\n```json\n{json.dumps(selected_segment.get('filter', {}), indent=2)}\n```")
+                            if selected_segment.get("reasoning"):
+                                st.markdown(f"**Reasoning:**\n{selected_segment['reasoning']}")
+                            if selected_segment.get("measured_metrics"):
+                                metrics = selected_segment["measured_metrics"]
+                                st.markdown("**Metrics:**")
+                                if "revenue_velocity" in metrics:
+                                    rv = metrics["revenue_velocity"]
+                                    if rv >= 1:
+                                        st.success(f"Revenue Velocity: ${rv:.2f}")
+                                    elif rv > 0:
+                                        st.info(f"Revenue Velocity: ${rv:.2f}")
+                                    else:
+                                        st.warning(f"Revenue Velocity: ${rv:.2f}")
+                                st.markdown(f"```json\n{json.dumps(metrics, indent=2)}\n```")
 
         # Download button for segments as JSON
         st.download_button(
