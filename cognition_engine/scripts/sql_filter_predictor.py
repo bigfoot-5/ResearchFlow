@@ -843,6 +843,7 @@ class AnalysisAgent(BaseChatAgent):
             # Process each segment
             analyzed_results = []
             for segment in segments_data:
+                # Extract metrics from the segment data
                 metrics = segment.get("metrics", {})
                 if metrics:
                     total = metrics.get("total_deals", 0)
@@ -1041,11 +1042,22 @@ async def predict_measure_analyze_segments():
 
     # Step 3: Send tested segments results to Analysis Agent for final analysis and comparison
     if tested_segments_results:
-        analyzable_results = [res for res in tested_segments_results if res.get("db_status") not in ["skipped", "error", "no_data"]]
+        analyzable_results = [res for res in tested_segments_results if res.get("db_status") == "success" and res.get("metrics")]
         if analyzable_results:
             print(f"\n--- Analyzing Measured Performance ---")
             print(f"Sending results of {len(analyzable_results)} tested segments to AnalysisAgent for final analysis...")
-            analysis_request_message = UserMessage(content=json.dumps(analyzable_results), source=filter_agent.name)
+            
+            # Format the data for analysis
+            formatted_results = []
+            for result in analyzable_results:
+                formatted_result = {
+                    "filter": result.get("filter", {}),
+                    "reasoning": result.get("reasoning", ""),
+                    "metrics": result.get("metrics", {})
+                }
+                formatted_results.append(formatted_result)
+            
+            analysis_request_message = UserMessage(content=json.dumps(formatted_results), source=filter_agent.name)
             analysis_response = await analysis_agent.on_messages([analysis_request_message], CancellationToken())
 
             if analysis_response and analysis_response.chat_message:
