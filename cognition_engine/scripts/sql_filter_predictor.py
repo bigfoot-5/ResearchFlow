@@ -844,7 +844,7 @@ class AnalysisAgent(BaseChatAgent):
             analyzed_results = []
             for segment in segments_data:
                 # If this is an initial segment (has filter and reasoning but no metrics)
-                if "filter" in segment and "reasoning" in segment and "metrics" not in segment:
+                if "filter" in segment and "reasoning" in segment:
                     analyzed_results.append({
                         "filter": segment["filter"],
                         "reasoning": segment["reasoning"],
