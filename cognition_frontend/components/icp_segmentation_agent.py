@@ -1,4 +1,4 @@
-import psycopg2
+# import psycopg2
 from autogen import ConversableAgent
 from autogen import GroupChat, GroupChatManager
 import os
