@@ -488,7 +488,8 @@ elif selected_feature == "ICP Segmentation":
         # Build a display label for each segment
         def segment_label(segment):
             filt = segment.get("filter", {})
-            rv = segment.get("revenue_velocity", None)
+            metrics = segment.get("measured_metrics", {})
+            rv = metrics.get("revenue_velocity", None)
             label = ", ".join(
                 f"{k}: {', '.join(v) if isinstance(v, list) else v}"
                 for k, v in filt.items() if v
@@ -514,8 +515,9 @@ elif selected_feature == "ICP Segmentation":
                 selected_segment = segments_data[selected_idx]
                 with st.expander(f"Segment: {segment_label(selected_segment)}", expanded=True):
                     st.markdown(f"**Filter:**\n```json\n{json.dumps(selected_segment.get('filter', {}), indent=2)}\n```")
-                    st.markdown(f"**Prediction Reasoning:** {selected_segment.get('prediction_reasoning', 'N/A')}")
-                    rv = selected_segment.get('revenue_velocity', None)
+                    st.markdown(f"**Prediction Reasoning:** {selected_segment.get('reasoning', 'N/A')}")
+                    metrics = selected_segment.get("measured_metrics", {})
+                    rv = metrics.get("revenue_velocity", None)
                     if rv is not None:
                         if rv >= 1:
                             st.success(f"Revenue Velocity: {rv:.2f}")
