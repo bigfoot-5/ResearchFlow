@@ -483,23 +483,52 @@ elif selected_feature == "ICP Segmentation":
     if not segments_result or not isinstance(segments_result, dict) or "results" not in segments_result:
         st.info("Click 'Generate Segments' to run the segmentation agent and view results.")
     else:
-        segments_data = segments_result["results"]
-
-        # Build a display label for each segment
         def segment_label(segment):
-            filt = segment.get("filter", {})
+            """Format segment for display in dropdown"""
+            filter_data = segment.get("filter", {})
             metrics = segment.get("measured_metrics", {})
-            rv = metrics.get("revenue_velocity", None)
-            label = ", ".join(
-                f"{k}: {', '.join(v) if isinstance(v, list) else v}"
-                for k, v in filt.items() if v
-            )
-            rv_str = f" | Revenue Velocity: {rv:.2f}" if rv is not None else ""
-            return f"{label}{rv_str}"
+            revenue_velocity = metrics.get("revenue_velocity", 0)
+            
+            # Build the label with key filter information
+            label_parts = []
+            if filter_data.get("industry"):
+                label_parts.append(f"Industry: {', '.join(filter_data['industry'])}")
+            if filter_data.get("job_title"):
+                label_parts.append(f"Role: {', '.join(filter_data['job_title'])}")
+            if filter_data.get("country"):
+                label_parts.append(f"Country: {', '.join(filter_data['country'])}")
+            
+            # Add revenue velocity
+            label_parts.append(f"Revenue Velocity: ${revenue_velocity:.2f}")
+            
+            return " | ".join(label_parts)
 
-        segment_options = [
-            (segment_label(seg), idx) for idx, seg in enumerate(segments_data)
-        ]
+        def get_segment_options(segments_result):
+            """Process segments and return options for multiselect"""
+            if segments_result and isinstance(segments_result, dict) and segments_result.get("status") == "success":
+                segments_data = segments_result.get("results", [])
+                print("\nDebug - Segments Data:")
+                print(json.dumps(segments_data, indent=2))
+                
+                # Build segment options for multiselect
+                segment_options = []
+                for segment in segments_data:
+                    if segment.get("filter"):  # Only add segments with valid filter data
+                        segment_options.append({
+                            "label": segment_label(segment),
+                            "value": json.dumps(segment)  # Store full segment data as value
+                        })
+                
+                print("\nDebug - Segment Options:")
+                print(json.dumps(segment_options, indent=2))
+                
+                return segment_options
+            else:
+                print("\nDebug - Invalid segments_result:")
+                print(json.dumps(segments_result, indent=2))
+                return []
+
+        segment_options = get_segment_options(segments_result)
 
         # Multi-select to compare multiple segments
         selected_indices = st.multiselect(
@@ -512,7 +541,7 @@ elif selected_feature == "ICP Segmentation":
             st.info("Select at least one segment to view details.")
         else:
             for selected_idx in selected_indices:
-                selected_segment = segments_data[selected_idx]
+                selected_segment = segments_result[selected_idx]
                 with st.expander(f"Segment: {segment_label(selected_segment)}", expanded=True):
                     st.markdown(f"**Filter:**\n```json\n{json.dumps(selected_segment.get('filter', {}), indent=2)}\n```")
                     st.markdown(f"**Prediction Reasoning:** {selected_segment.get('reasoning', 'N/A')}")
@@ -558,7 +587,7 @@ elif selected_feature == "ICP Segmentation":
         # Download button for segments as JSON
         st.download_button(
             label="Download Segments as JSON",
-            data=json.dumps(segments_data, indent=2),
+            data=json.dumps(segments_result, indent=2),
             file_name="icp_segments.json",
             mime="application/json"
         )

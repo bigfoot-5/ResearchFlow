@@ -899,6 +899,18 @@ Provide a concise analysis focusing on actionable insights.
                 "results": analyzed_results
             }
 
+            # Add open deals to each segment in the results
+            for segment in analyzed_results:
+                segment_key = json.dumps(segment["filter"], sort_keys=True)
+                if segment_key in relevant_open_deals_by_segment:
+                    segment["top_relevant_open_deals"] = relevant_open_deals_by_segment[segment_key]
+                else:
+                    segment["top_relevant_open_deals"] = []
+
+            # Print debug information
+            print("\nDebug - Final Response Structure:")
+            print(json.dumps(final_response, indent=2))
+
             yield Response(
                 chat_message=TextMessage(content=json.dumps(final_response), source=self.name),
                 inner_messages=[]
