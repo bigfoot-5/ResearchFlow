@@ -788,12 +788,146 @@ Answer as a helpful analyst:
         print(f"Error querying Pinecone: {e}")
         return f"Error querying vector database: {e}"
 
+# --- Analysis Agent ---
+class AnalysisAgent(BaseChatAgent):
+    def __init__(self, name: str, openai_model: str = "gpt-4o", ollama_model: str = "gemma3:1b"):
+        super().__init__(name=name, description="Agent that analyzes segment performance and calculates revenue velocity")
+        self._llm = None
+        openai_api_key = os.getenv("OPENAI_API_KEY")
+
+        if openai_api_key:
+            print(f"Attempting to initialize OpenAI model '{openai_model}'...")
+            try:
+                self._llm = ChatOpenAI(api_key=openai_api_key, model=openai_model)
+                print("Successfully initialized OpenAI model.")
+            except Exception as e:
+                print(f"Failed to initialize OpenAI model: {e}")
+                self._llm = None
+        else:
+            print("OPENAI_API_KEY not found in environment variables. Skipping OpenAI initialization.")
+
+        if self._llm is None:
+            print(f"Attempting to initialize Ollama model '{ollama_model}'...")
+            try:
+                ollama_test_llm = ChatOllama(model=ollama_model, base_url="http://localhost:11434")
+                ollama_test_llm.invoke("hello")
+                self._llm = ollama_test_llm
+                print("Successfully initialized Ollama model.")
+            except Exception as e:
+                print(f"Failed to initialize Ollama model: {e}")
+                self._llm = None
+
+        if self._llm is None:
+            raise RuntimeError("Failed to initialize both OpenAI and Ollama models.")
+
+    def calculate_revenue_velocity(self, total_deals: int, won_deals: int, avg_amount: float, avg_days_to_close: float) -> float:
+        """Calculate revenue velocity for a segment."""
+        if total_deals == 0 or avg_days_to_close == 0:
+            return 0.0
+        
+        win_rate = (won_deals / total_deals) * 100
+        revenue_velocity = (win_rate / avg_days_to_close) * avg_amount
+        return round(revenue_velocity, 2)
+
+    @property
+    def produced_message_types(self) -> Sequence[type[BaseChatMessage]]:
+        return (TextMessage,)
+
+    async def on_messages_stream(
+        self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
+    ) -> AsyncGenerator[BaseAgentEvent | BaseChatMessage | Response, None]:
+        try:
+            latest_message = messages[-1]
+            segments_data = json.loads(latest_message.content)
+
+            # Process each segment
+            analyzed_results = []
+            for segment in segments_data:
+                metrics = segment.get("metrics", {})
+                if metrics:
+                    total = metrics.get("total_deals", 0)
+                    won = metrics.get("won_deals", 0)
+                    amount = metrics.get("avg_amount", 0)
+                    days = metrics.get("avg_days_to_close", 0)
+                    
+                    revenue_velocity = self.calculate_revenue_velocity(total, won, amount, days)
+                    
+                    analyzed_results.append({
+                        "filter": segment.get("filter", {}),
+                        "reasoning": segment.get("reasoning", ""),
+                        "measured_metrics": {
+                            "total_deals": total,
+                            "won_deals": won,
+                            "avg_amount": amount,
+                            "avg_days_to_close": days,
+                            "revenue_velocity": revenue_velocity
+                        }
+                    })
+
+            # Sort results by revenue velocity (highest first)
+            analyzed_results.sort(key=lambda x: x["measured_metrics"]["revenue_velocity"], reverse=True)
+
+            # Prepare analysis prompt for LLM
+            analysis_prompt = f"""
+Analyze the following segment performance data, sorted by Revenue Velocity.
+Focus on the top performing segments and explain why they might be successful.
+Consider factors like:
+- Win rates and their impact on revenue velocity
+- Sales cycle length and its effect on velocity
+- Average deal size (ACV) and its contribution
+- Any patterns in the filter combinations that correlate with high performance
+
+Segment Data:
+{json.dumps(analyzed_results, indent=2)}
+
+Provide a concise analysis focusing on actionable insights.
+"""
+
+            # Get LLM analysis
+            try:
+                llm_response = self._llm.invoke(analysis_prompt)
+                analysis_text = llm_response.content
+            except Exception as e:
+                print(f"Error getting LLM analysis: {e}")
+                analysis_text = "LLM analysis unavailable. Showing raw metrics only."
+
+            # Prepare final response
+            final_response = {
+                "status": "success",
+                "analysis": analysis_text,
+                "results": analyzed_results
+            }
+
+            yield Response(
+                chat_message=TextMessage(content=json.dumps(final_response), source=self.name),
+                inner_messages=[]
+            )
+
+        except Exception as e:
+            print(f"Error in analysis agent: {e}")
+            yield Response(
+                chat_message=TextMessage(content=json.dumps({"status": "error", "message": str(e)}), source=self.name),
+                inner_messages=[]
+            )
+
+    async def on_reset(self, cancellation_token: CancellationToken) -> None:
+        pass
+
+    async def on_messages(
+        self, messages: Sequence[BaseChatMessage], cancellation_token: CancellationToken
+    ) -> Response:
+        async for message in self.on_messages_stream(messages, cancellation_token):
+            if isinstance(message, Response):
+                return message
+        raise RuntimeError("AnalysisAgent did not produce a response.")
+
 # --- Main Workflow Orchestration ---
 async def predict_measure_analyze_segments():
     print("Starting Predict, Measure, and Analyze Revenue Velocity workflow...")
 
     # Instantiate agents
     filter_agent = FilterPredictionAgent(name="FilterPredictionAgent", openai_model="gpt-4o", ollama_model="gemma3:1b")
+    analysis_agent = AnalysisAgent(name="AnalysisAgent", openai_model="gpt-4o", ollama_model="gemma3:1b")
 
     max_attempts = 10
     attempt = 0
