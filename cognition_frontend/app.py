@@ -483,30 +483,16 @@ elif selected_feature == "ICP Segmentation":
     if not segments_result or not isinstance(segments_result, dict) or "results" not in segments_result:
         st.info("Click 'Generate Segments' to run the segmentation agent and view results.")
     else:
-        def segment_label(segment):
-            """Format segment for display in dropdown"""
-            filter_data = segment.get("filter", {})
-            metrics = segment.get("measured_metrics", {})
-            revenue_velocity = metrics.get("revenue_velocity", 0)
-            
-            # Build the label with key filter information
-            label_parts = []
-            if filter_data.get("industry"):
-                label_parts.append(f"Industry: {', '.join(filter_data['industry'])}")
-            if filter_data.get("job_title"):
-                label_parts.append(f"Role: {', '.join(filter_data['job_title'])}")
-            if filter_data.get("country"):
-                label_parts.append(f"Country: {', '.join(filter_data['country'])}")
-            
-            # Add revenue velocity
-            label_parts.append(f"Revenue Velocity: ${revenue_velocity:.2f}")
-            
-            return " | ".join(label_parts)
-
         def get_segment_options(segments_result):
             """Process segments and return options for multiselect"""
-            if segments_result and isinstance(segments_result, dict) and segments_result.get("status") == "success":
+            if segments_result and isinstance(segments_result, dict):
+                # First try to get segments from the results field
                 segments_data = segments_result.get("results", [])
+                
+                # If results is empty but we have predicted_filters, use those
+                if not segments_data and "predicted_filters" in segments_result:
+                    segments_data = segments_result["predicted_filters"]
+                
                 print("\nDebug - Segments Data:")
                 print(json.dumps(segments_data, indent=2))
                 
@@ -514,8 +500,26 @@ elif selected_feature == "ICP Segmentation":
                 segment_options = []
                 for segment in segments_data:
                     if segment.get("filter"):  # Only add segments with valid filter data
+                        # Create a display label
+                        filter_data = segment.get("filter", {})
+                        label_parts = []
+                        
+                        # Add key filter information
+                        if filter_data.get("industry"):
+                            label_parts.append(f"Industry: {', '.join(filter_data['industry'])}")
+                        if filter_data.get("job_title"):
+                            label_parts.append(f"Role: {', '.join(filter_data['job_title'])}")
+                        if filter_data.get("country"):
+                            label_parts.append(f"Country: {', '.join(filter_data['country'])}")
+                        if filter_data.get("employee_bucket"):
+                            label_parts.append(f"Size: {', '.join(filter_data['employee_bucket'])}")
+                        
+                        # Add reasoning if available
+                        if segment.get("reasoning"):
+                            label_parts.append(f"Reason: {segment['reasoning'][:50]}...")
+                        
                         segment_options.append({
-                            "label": segment_label(segment),
+                            "label": " | ".join(label_parts),
                             "value": json.dumps(segment)  # Store full segment data as value
                         })
                 
@@ -528,61 +532,32 @@ elif selected_feature == "ICP Segmentation":
                 print(json.dumps(segments_result, indent=2))
                 return []
 
+        # Get segment options
         segment_options = get_segment_options(segments_result)
-
+        
         # Multi-select to compare multiple segments
         selected_indices = st.multiselect(
-            "Select one or more segments to view details and top deals:",
-            options=[idx for _, idx in segment_options],
-            format_func=lambda idx: segment_options[idx][0]
+            "Select segments to compare",
+            options=[opt["label"] for opt in segment_options],
+            format_func=lambda x: x
         )
-
-        if not selected_indices:
-            st.info("Select at least one segment to view details.")
-        else:
-            for selected_idx in selected_indices:
-                selected_segment = segments_result[selected_idx]
-                with st.expander(f"Segment: {segment_label(selected_segment)}", expanded=True):
-                    st.markdown(f"**Filter:**\n```json\n{json.dumps(selected_segment.get('filter', {}), indent=2)}\n```")
-                    st.markdown(f"**Prediction Reasoning:** {selected_segment.get('reasoning', 'N/A')}")
-                    metrics = selected_segment.get("measured_metrics", {})
-                    rv = metrics.get("revenue_velocity", None)
-                    if rv is not None:
-                        if rv >= 1:
-                            st.success(f"Revenue Velocity: {rv:.2f}")
-                        elif rv > 0:
-                            st.info(f"Revenue Velocity: {rv:.2f}")
-                        else:
-                            st.warning(f"Revenue Velocity: {rv:.2f}")
-                    else:
-                        st.warning("Revenue Velocity: N/A")
-
-                    # Show top 3 relevant open deals
-                    top_deals = selected_segment.get("top_relevant_open_deals", [])
-                    st.markdown("**Top 3 Relevant Open Deals:**")
-                    if not top_deals:
-                        st.info("No relevant open deals found for this segment.")
-                    else:
-                        deals_df = pd.DataFrame(top_deals)
-                        st.dataframe(deals_df, use_container_width=True, hide_index=True)
-
-                    # --- Chat box for this segment ---
-                    filter_dict = selected_segment.get("filter", {})
-                    filter_id = hashlib.md5(json.dumps(filter_dict, sort_keys=True).encode()).hexdigest()
-                    chat_key = f"chat_input_{filter_id}"
-                    answer_key = f"chat_answer_{filter_id}"
-                    vectorized_key = f"vectorized_{filter_id}"
-                    user_question = st.text_input("Ask a question about this segment:", key=chat_key)
-                    if st.button("Ask", key=f"ask_btn_{filter_id}") and user_question:
-                        with st.spinner("Getting answer from LLM..."):
-                            # Vectorize deals for this filter if not already done
-                            if not st.session_state.get(vectorized_key, False):
-                                num_added = vectorize_deals_for_filter(filter_dict, filter_id)
-                                st.session_state[vectorized_key] = True
-                            answer = answer_question_for_filter(filter_id, user_question)
-                            st.session_state[answer_key] = answer
-                    if answer_key in st.session_state:
-                        st.markdown(f"**LLM Answer:**\n{st.session_state[answer_key]}")
+        
+        # Display selected segments
+        if selected_indices:
+            for selected_label in selected_indices:
+                # Find the corresponding segment data
+                selected_segment = next(
+                    (json.loads(opt["value"]) for opt in segment_options if opt["label"] == selected_label),
+                    None
+                )
+                
+                if selected_segment:
+                    with st.expander(f"Segment Details: {selected_label}", expanded=True):
+                        st.markdown(f"**Filter:**\n```json\n{json.dumps(selected_segment.get('filter', {}), indent=2)}\n```")
+                        if selected_segment.get("reasoning"):
+                            st.markdown(f"**Reasoning:**\n{selected_segment['reasoning']}")
+                        if selected_segment.get("measured_metrics"):
+                            st.markdown(f"**Metrics:**\n```json\n{json.dumps(selected_segment['measured_metrics'], indent=2)}\n```")
 
         # Download button for segments as JSON
         st.download_button(
