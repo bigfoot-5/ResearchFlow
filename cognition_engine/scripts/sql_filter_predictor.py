@@ -843,9 +843,22 @@ class AnalysisAgent(BaseChatAgent):
             # Process each segment
             analyzed_results = []
             for segment in segments_data:
-                # Extract metrics from the segment data
-                metrics = segment.get("metrics", {})
-                if metrics:
+                # If this is an initial segment (has filter and reasoning but no metrics)
+                if "filter" in segment and "reasoning" in segment and "metrics" not in segment:
+                    analyzed_results.append({
+                        "filter": segment["filter"],
+                        "reasoning": segment["reasoning"],
+                        "measured_metrics": {
+                            "total_deals": 0,
+                            "won_deals": 0,
+                            "avg_amount": 0,
+                            "avg_days_to_close": 0,
+                            "revenue_velocity": 0
+                        }
+                    })
+                # If this is a segment with metrics
+                elif "metrics" in segment:
+                    metrics = segment.get("metrics", {})
                     total = metrics.get("total_deals", 0)
                     won = metrics.get("won_deals", 0)
                     amount = metrics.get("avg_amount", 0)
