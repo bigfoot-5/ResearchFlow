@@ -499,7 +499,7 @@ elif selected_feature == "ICP Segmentation":
                 # Build segment options for multiselect
                 segment_options = []
                 for segment in segments_data:
-                    if segment.get("filter"):  # Only add segments with valid filter data
+                    if isinstance(segment, dict) and segment.get("filter"):  # Only add segments with valid filter data
                         # Create a display label
                         filter_data = segment.get("filter", {})
                         label_parts = []
