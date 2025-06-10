@@ -95,14 +95,27 @@ async def extract_and_vectorize_all_deals(db_config: Dict[str, Any]):
             JOIN dim_companies c ON d.company_id = c.company_id
             LEFT JOIN dim_contacts ct ON d.company_id = ct.company_id
             WHERE d.dealstage IN ('closedwon', 'closedlost')
+            AND d.amount IS NOT NULL
+            AND d.days_to_close IS NOT NULL
         """
         cursor.execute(query)
         rows = cursor.fetchall()
+        print(f"\nDebug - Total deals fetched from database: {len(rows)}")
+        
         pinecone_vectors = []
         for row in rows:
             doc_id = f"deal_{row['deal_id']}"
             if row['contact_id']:
                 doc_id += f"_contact_{row['contact_id']}"
+            
+            # Debug print for first few deals
+            if len(pinecone_vectors) < 5:
+                print(f"\nDebug - Processing deal {row['deal_id']}:")
+                print(f"Deal Name: {row['deal_name']}")
+                print(f"Amount: ${row['amount']}")
+                print(f"Stage: {row['dealstage']}")
+                print(f"Days to Close: {row['days_to_close']}")
+            
             doc_content = (
                 f"Deal: '{row['deal_name']}' (ID: {row['deal_id']}). "
                 f"Status: {row['dealstage']}, Amount: ${row['amount'] or 0:.2f}, "
@@ -116,18 +129,22 @@ async def extract_and_vectorize_all_deals(db_config: Dict[str, Any]):
                 "company_id": str(row['company_id']),
                 "contact_id": str(row['contact_id']) if row['contact_id'] is not None else "N/A",
                 "dealstage": row['dealstage'] if row['dealstage'] is not None else "N/A",
-                "amount": row['amount'] if row['amount'] is not None else 0.0,
-                "days_to_close": row['days_to_close'] if row['days_to_close'] is not None else 0.0,
+                "amount": float(row['amount']) if row['amount'] is not None else 0.0,
+                "days_to_close": float(row['days_to_close']) if row['days_to_close'] is not None else 0.0,
                 "hs_analytics_source": row['hs_analytics_source'] if row['hs_analytics_source'] is not None else "N/A",
                 "industry": row['industry'] if row['industry'] is not None else "N/A",
                 "country": row['country'] if row['country'] is not None else "N/A",
                 "employee_bucket": row['employee_bucket'] if row['employee_bucket'] is not None else "N/A",
-                "numberofemployees": row['numberofemployees'] if row['numberofemployees'] is not None else 0,
+                "numberofemployees": int(row['numberofemployees']) if row['numberofemployees'] is not None else 0,
                 "job_title": row['job_title'] if row['job_title'] is not None else "N/A"
             }
-            # Get embedding
-            embedding = embeddings_model.embed_documents([doc_content])[0]
-            pinecone_vectors.append((doc_id, embedding, metadata))
+            try:
+                # Get embedding
+                embedding = embeddings_model.embed_documents([doc_content])[0]
+                pinecone_vectors.append((doc_id, embedding, metadata))
+            except Exception as e:
+                print(f"Error processing deal {row['deal_id']}: {e}")
+                continue
         # Upsert to Pinecone
         if pinecone_vectors:
             print(f"Upserting {len(pinecone_vectors)} vectors to Pinecone index '{PINECONE_INDEX_NAME}'...")

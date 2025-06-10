@@ -21,6 +21,13 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../cogn
 
 from sql_filter_predictor import predict_measure_analyze_segments, answer_question_for_filter, vectorize_deals_for_filter
 
+# Add custom JSON encoder for datetime objects
+class DateTimeEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        return super().default(obj)
+
 # --- Configuration ---
 BACKEND_URL = "http://localhost:8005"  # Updated to match backend port
 PAGE_TITLE = "Cognition Engine AI"
@@ -484,58 +491,92 @@ elif selected_feature == "ICP Segmentation":
         st.info("Click 'Generate Segments' to run the segmentation agent and view results.")
     else:
         def get_segment_options(segments_result):
-            """Process segments and return options for multiselect"""
-            if segments_result and isinstance(segments_result, dict):
-                # First try to get segments from the results field
-                segments_data = segments_result.get("results", [])
-                
-                # If results is empty but we have predicted_filters, use those
-                if not segments_data and "predicted_filters" in segments_result:
-                    segments_data = segments_result["predicted_filters"]
-                
-                print("\nDebug - Segments Data:")
-                print(json.dumps(segments_data, indent=2))
-                
-                # Build segment options for multiselect
-                segment_options = []
-                for segment in segments_data:
-                    if isinstance(segment, dict) and segment.get("filter"):  # Only add segments with valid filter data
-                        # Create a display label
+            """Extract segment options from backend response."""
+            if not segments_result:
+                return []
+            
+            try:
+                # Handle both direct segment list and wrapped response
+                if isinstance(segments_result, dict):
+                    if "results" in segments_result:
+                        segments = segments_result["results"]
+                    else:
+                        segments = [segments_result]
+                else:
+                    segments = segments_result
+
+                options = []
+                for i, segment in enumerate(segments):
+                    try:
+                        # Build label from filter data
                         filter_data = segment.get("filter", {})
                         label_parts = []
                         
-                        # Add key filter information
-                        if filter_data.get("industry"):
-                            label_parts.append(f"Industry: {', '.join(filter_data['industry'])}")
-                        if filter_data.get("job_title"):
-                            label_parts.append(f"Role: {', '.join(filter_data['job_title'])}")
-                        if filter_data.get("country"):
-                            label_parts.append(f"Country: {', '.join(filter_data['country'])}")
-                        if filter_data.get("employee_bucket"):
-                            label_parts.append(f"Size: {', '.join(filter_data['employee_bucket'])}")
+                        if "industry" in filter_data:
+                            industries = filter_data["industry"]
+                            if isinstance(industries, list):
+                                label_parts.append(f"Industry: {', '.join(industries)}")
+                            else:
+                                label_parts.append(f"Industry: {industries}")
+                        
+                        if "job_title" in filter_data:
+                            titles = filter_data["job_title"]
+                            if isinstance(titles, list):
+                                label_parts.append(f"Job Title: {', '.join(titles)}")
+                            else:
+                                label_parts.append(f"Job Title: {titles}")
+                        
+                        if "country" in filter_data:
+                            countries = filter_data["country"]
+                            if isinstance(countries, list):
+                                label_parts.append(f"Country: {', '.join(countries)}")
+                            else:
+                                label_parts.append(f"Country: {countries}")
+                        
+                        if "employee_bucket" in filter_data:
+                            buckets = filter_data["employee_bucket"]
+                            if isinstance(buckets, list):
+                                label_parts.append(f"Employee Size: {', '.join(buckets)}")
+                            else:
+                                label_parts.append(f"Employee Size: {buckets}")
                         
                         # Add reasoning if available
-                        if segment.get("reasoning"):
-                            label_parts.append(f"Reason: {segment['reasoning'][:50]}...")
+                        reasoning = segment.get("reasoning", "")
+                        if reasoning:
+                            label_parts.append(f"Reasoning: {reasoning}")
                         
-                        # Add revenue velocity if available
+                        # Add metrics if available
                         metrics = segment.get("measured_metrics", {})
-                        if metrics and "revenue_velocity" in metrics:
-                            rv = metrics["revenue_velocity"]
-                            label_parts.append(f"RV: ${rv:.2f}")
+                        if metrics:
+                            metric_parts = []
+                            if metrics.get("total_deals"):
+                                metric_parts.append(f"Total Deals: {metrics['total_deals']}")
+                            if metrics.get("won_deals"):
+                                metric_parts.append(f"Won Deals: {metrics['won_deals']}")
+                            if metrics.get("avg_amount"):
+                                metric_parts.append(f"Avg Amount: ${metrics['avg_amount']:.2f}")
+                            if metrics.get("revenue_velocity"):
+                                metric_parts.append(f"Revenue Velocity: {metrics['revenue_velocity']:.2f}")
+                            if metric_parts:
+                                label_parts.append(f"Metrics: {' | '.join(metric_parts)}")
                         
-                        segment_options.append({
-                            "label": " | ".join(label_parts),
-                            "value": json.dumps(segment)  # Store full segment data as value
-                        })
+                        # Create the full label
+                        label = " | ".join(label_parts)
+                        
+                        # Use the segment's filter as the value
+                        value = json.dumps(segment)
+                        
+                        options.append({"label": label, "value": value})
+                        
+                    except Exception as e:
+                        print(f"Error processing segment {i}: {e}")
+                        continue
                 
-                print("\nDebug - Segment Options:")
-                print(json.dumps(segment_options, indent=2))
+                print(f"Generated {len(options)} segment options")
+                return options
                 
-                return segment_options
-            else:
-                print("\nDebug - Invalid segments_result:")
-                print(json.dumps(segments_result, indent=2))
+            except Exception as e:
+                print(f"Error in get_segment_options: {e}")
                 return []
 
         # Get segment options
@@ -577,11 +618,62 @@ elif selected_feature == "ICP Segmentation":
                                     else:
                                         st.warning(f"Revenue Velocity: ${rv:.2f}")
                                 st.markdown(f"```json\n{json.dumps(metrics, indent=2)}\n```")
+                            
+                            # Display matching deals
+                            if "relevant_open_deals" in segments_result:
+                                segment_key = json.dumps(selected_segment['filter'], sort_keys=True)
+                                matching_deals = segments_result["relevant_open_deals"].get(segment_key, [])
+                                
+                                if matching_deals:
+                                    st.markdown("### Top Matching Open Deals")
+                                    for i, deal in enumerate(matching_deals, 1):
+                                        st.markdown(f"#### Deal {i}: {deal.get('deal_name', 'N/A')}")
+                                        col1, col2 = st.columns(2)
+                                        with col1:
+                                            st.markdown(f"**Company:** {deal.get('company_name', 'N/A')}")
+                                            st.markdown(f"**Amount:** ${deal.get('amount', 0):,.2f}")
+                                            st.markdown(f"**Stage:** {deal.get('dealstage', 'N/A')}")
+                                        with col2:
+                                            st.markdown(f"**Industry:** {deal.get('industry', 'N/A')}")
+                                            st.markdown(f"**Country:** {deal.get('country', 'N/A')}")
+                                            st.markdown(f"**Employee Size:** {deal.get('employee_bucket', 'N/A')}")
+                                        if deal.get('job_title'):
+                                            st.markdown(f"**Contact Role:** {deal['job_title']}")
+                                        st.divider()
+                                else:
+                                    st.info("No matching open deals found for this segment.")
+                            
+                            # Add insights section
+                            st.markdown("### Segment Insights")
+                            question = st.text_input("Ask a question about this segment:", key=f"question_{selected_label}")
+                            
+                            if question:
+                                if st.button("Get Insights", key=f"insights_{selected_label}"):
+                                    with st.spinner("Analyzing segment..."):
+                                        try:
+                                            # Create a unique filter_id for this segment
+                                            filter_id = hashlib.md5(json.dumps(selected_segment['filter'], sort_keys=True).encode()).hexdigest()
+                                            
+                                            # First, vectorize the deals for this filter
+                                            st.info("Vectorizing deals for analysis...")
+                                            num_vectorized = vectorize_deals_for_filter(selected_segment['filter'], filter_id)
+                                            
+                                            if num_vectorized > 0:
+                                                st.success(f"Successfully vectorized {num_vectorized} deals for analysis")
+                                                # Get answer from the backend
+                                                answer = answer_question_for_filter(filter_id, question)
+                                                
+                                                st.markdown("**Insights:**")
+                                                st.markdown(answer)
+                                            else:
+                                                st.error("No deals found to analyze for this segment. Please try a different segment or question.")
+                                        except Exception as e:
+                                            st.error(f"Error getting insights: {str(e)}")
 
         # Download button for segments as JSON
         st.download_button(
             label="Download Segments as JSON",
-            data=json.dumps(segments_result, indent=2),
+            data=json.dumps(segments_result, indent=2, cls=DateTimeEncoder),
             file_name="icp_segments.json",
             mime="application/json"
         )

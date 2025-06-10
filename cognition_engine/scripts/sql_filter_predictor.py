@@ -342,27 +342,58 @@ except Exception as e:
     pinecone_index = None
     embeddings_model = None
 
+def normalize_industry_name(industry: str) -> str:
+    """Normalize industry names to match database values."""
+    industry_mappings = {
+        "CUSTOM_SOFTWARE_IT_SERVICES": "COMPUTER_SOFTWARE",
+        "ENTERPRISE_RESOURCE_PLANNING": "COMPUTER_SOFTWARE",
+        "GAMBLING_CASINOS": "GAMBLING_CASINOS",
+        "SPORTS": "SPORTS",
+        "ENERGY": "OIL_ENERGY",
+        "OIL_ENERGY": "OIL_ENERGY",
+        "HEALTHCARE": "HEALTHCARE",
+        "MEDICAL_DEVICES": "MEDICAL_DEVICES",
+        "RETAIL": "RETAIL",
+        "ELECTRONICS": "ELECTRONICS",
+        "ACCOUNTING": "ACCOUNTING",
+        "LEGAL_SERVICES": "LEGAL_SERVICES",
+        "COMPUTER_SOFTWARE": "COMPUTER_SOFTWARE",
+        "INFORMATION_TECHNOLOGY_AND_SERVICES": "INFORMATION_TECHNOLOGY_AND_SERVICES"
+    }
+    return industry_mappings.get(industry.upper(), industry.upper())
+
 # --- Helper function to build dynamic WHERE clause for a single filter combo ---
 def build_single_filter_condition(filter_combo: Dict[str, List[str]]) -> str:
     """Builds SQL WHERE clause for a single filter combination."""
+    print("\nDebug - Building filter condition for:")
+    print(json.dumps(filter_combo, indent=2))
+    
     conditions = []
-    if filter_combo.get('hs_analytics_source'):
-        sources = ", ".join(f"'{s}'" for s in filter_combo['hs_analytics_source'])
-        conditions.append(f"d.hs_analytics_source IN ({sources})")
-    if filter_combo.get('job_title'):
-        titles = ", ".join(f"'{t}'" for t in filter_combo['job_title'])
-        conditions.append(f"ct.job_title IN ({titles})")
-    if filter_combo.get('industry'):
-        industries = ", ".join(f"'{i}'" for i in filter_combo['industry'])
-        conditions.append(f"c.industry IN ({industries})")
-    if filter_combo.get('country'):
-        countries = ", ".join(f"'{c}'" for c in filter_combo['country'])
-        conditions.append(f"c.country IN ({countries})")
-    if filter_combo.get('employee_bucket'):
-        buckets = ", ".join(f"'{b}'" for b in filter_combo['employee_bucket'])
-        conditions.append(f"c.employee_bucket IN ({buckets})")
+    
+    # Define the field mappings for SQL conditions
+    field_mappings = {
+        'hs_analytics_source': ('d.hs_analytics_source', 'source'),
+        'job_title': ('ct.job_title', 'title'),
+        'industry': ('c.industry', 'industry'),
+        'country': ('c.country', 'country'),
+        'employee_bucket': ('c.employee_bucket', 'bucket')
+    }
+    
+    for field, (sql_field, debug_name) in field_mappings.items():
+        if field in filter_combo:
+            values = filter_combo[field]
+            if values:  # Only add condition if there are values
+                # Normalize industry names if this is the industry field
+                if field == 'industry':
+                    values = [normalize_industry_name(v) for v in values]
+                quoted_values = ", ".join(f"'{v}'" for v in values)
+                conditions.append(f"{sql_field} IN ({quoted_values})")
+                print(f"Debug - Added {debug_name} condition: {sql_field} IN ({quoted_values})")
 
-    return " AND ".join(conditions) if conditions else "TRUE"
+    where_clause = " AND ".join(conditions) if conditions else "TRUE"
+    print("\nDebug - Generated WHERE clause:")
+    print(where_clause)
+    return where_clause
 
 # --- Relevance Scoring Function ---
 def calculate_relevance_score(deal_data: Dict[str, Any], filter_combo: Dict[str, List[str]]) -> float:
@@ -377,10 +408,12 @@ def calculate_relevance_score(deal_data: Dict[str, Any], filter_combo: Dict[str,
 
     score = 0.0
     for dimension, weight in weights.items():
-        filter_values = filter_combo.get(dimension, [])
-        deal_value = deal_data.get(dimension)
-        if deal_value is not None and any(str(deal_value).lower() == str(fv).lower() for fv in filter_values):
-            score += weight
+        if dimension in filter_combo:
+            filter_values = filter_combo[dimension]
+            deal_value = deal_data.get(dimension)
+            if deal_value is not None and any(str(deal_value).lower() == str(fv).lower() for fv in filter_values):
+                score += weight
+                print(f"Debug - Match found for {dimension}: {deal_value} in {filter_values}")
 
     return score
 
@@ -411,8 +444,7 @@ async def fetch_open_deals(db_config: Dict[str, Any]) -> List[Dict[str, Any]]:
             FROM dim_deals d
             JOIN dim_companies c ON d.company_id = c.company_id
             LEFT JOIN dim_contacts ct ON d.company_id = ct.company_id
-            WHERE d.dealstage NOT IN ('closedwon', 'closedlost')
-            LIMIT 1000;
+            WHERE d.dealstage NOT IN ('closedwon', 'closedlost');
         """
         cursor.execute(query)
         open_deals = cursor.fetchall()
@@ -509,10 +541,34 @@ class FilterPredictionAgent(BaseChatAgent):
                     context += "\n"
                 print(f"Retrieved {len(matches)} deals for context.")
 
-            # Step 2: Formulate prompt for the LLM with context and available dimensions
-            prompt = f"""
+            # Initialize variables for retry logic
+            max_retries = 7
+            valid_segments = []
+            retry_count = 0
+            failed_filters = []  # Track failed filter combinations
+
+            while len(valid_segments) < 5 and retry_count < max_retries:
+                if retry_count > 0:
+                    print(f"\nRetry {retry_count}: Attempting to find more valid segments...")
+                    # Add feedback about previous attempts
+                    feedback = f"\nPrevious attempt found {len(valid_segments)} valid segments. Need at least 5 segments with deals.\n"
+                    if failed_filters:
+                        feedback += "\nThe following filter combinations did not yield enough deals:\n"
+                        for i, failed in enumerate(failed_filters[-3:], 1):  # Show last 3 failures
+                            feedback += f"{i}. {json.dumps(failed, indent=2)}\n"
+                    feedback += "\nTry using simpler combinations with fewer filters, focusing on the most common values in each dimension."
+                    context += feedback
+
+                # Step 2: Formulate prompt for the LLM with context and available dimensions
+                prompt = f"""
 Analyze the following examples of high-performing deals provided as context.
 Based on these examples and your general knowledge about sales dynamics, predict 5 to 10 specific filter combinations (segments) that are likely to have high revenue velocity. Revenue velocity is calculated as (Win Rate ÷ Sales Cycle in Days) × Average Contract Value (ACV).
+
+IMPORTANT: 
+1. Each segment MUST have at least 5 deals in the database.
+2. You don't need to use all dimensions in each filter - focus on the most important ones.
+3. Use simpler combinations with fewer filters if needed.
+4. Prioritize common values that are likely to exist in the data.
 
 Consider combinations of the following dimensions and their possible values:
 
@@ -529,95 +585,128 @@ Example JSON format for the list of predictions:
   {{
     "filter": {{
       "industry": ["TECHNOLOGY"],
-      "job_title": ["CEO", "VP People"],
-      "hs_analytics_source": ["ORGANIC_SEARCH", "DIRECT_TRAFFIC"]
+      "job_title": ["CEO"]
     }},
-    "reasoning": "Based on the context, deals in the technology sector with C-level contacts from organic sources seem to close faster with higher amounts."
+    "reasoning": "Based on the context, deals in the technology sector with C-level contacts seem to close faster with higher amounts."
   }},
   {{
     "filter": {{
       "industry": ["PHARMACEUTICALS"],
-      "job_title": ["Head of Talent"],
-      "hs_analytics_source": ["EMAIL_MARKETING"]
+      "employee_bucket": ["1001-5000"]
     }},
-    "reasoning": "Pharmaceutical deals with talent heads often represent specialized software needs, and email campaigns can effectively reach these niche roles."
+    "reasoning": "Pharmaceutical companies in this size range often represent specialized software needs."
   }},
   ...
 ]
 
 Predicted Segments (JSON array):
 """
-            # Add the context to the prompt for the LLM
-            prompt_with_context = f"{context}\n\n{prompt}"
+                # Add the context to the prompt for the LLM
+                prompt_with_context = f"{context}\n\n{prompt}"
 
-            # Print the full prompt being sent to the LLM for inspection
-            print("--- START LLM PROMPT ---")
-            print(prompt_with_context)
-            print("--- END LLM PROMPT ---")
+                # Print the full prompt being sent to the LLM for inspection
+                print("--- START LLM PROMPT ---")
+                print(prompt_with_context)
+                print("--- END LLM PROMPT ---")
 
-            # Use the LLM to generate the predicted filters based on context
-            try:
-                # Langchain ChatOllama uses invoke
-                llm_response = self._llm.invoke(prompt_with_context)
-                print("Successfully invoked LLM.")
-
-                # Extract the string content from the LLM's response message
-                llm_response_content = llm_response.content
-                print("--- START RAW LLM RESPONSE CONTENT ---")
-                print(llm_response_content)
-                print("--- END RAW LLM RESPONSE CONTENT ---")
-
-                # Attempt to extract JSON array from the response
-                import re
-                # Updated regex to be more robust, looking for the first occurrence of a list containing dicts
-                match = re.search(r'(\[\s*\{.*?\}\s*(,\s*\{.*?\}\s*)*\])', llm_response_content, re.DOTALL)
-                if match:
+                # Use the LLM to generate the predicted filters based on context
+                try:
+                    # Langchain ChatOllama uses invoke
+                    llm_response = self._llm.invoke(prompt_with_context)
+                    print("Successfully invoked LLM.")
+                    
+                    # Parse the response
+                    response_text = llm_response.content
+                    print("\nDebug - Raw LLM Response:")
+                    print(response_text)
+                    
+                    # Extract JSON array from response
+                    import re
+                    json_matches = list(re.finditer(r'\[\s*\{.*\}\s*\]', response_text, re.DOTALL))
+                    if not json_matches:
+                        print("Debug - No JSON array found in response")
+                        continue
+                    
+                    # Use the last match (most recent complete response)
+                    json_str = json_matches[-1].group(0)
+                    print("\nDebug - Extracted JSON string:")
+                    print(json_str)
+                    
                     try:
-                        # Take the first captured group, which should be the JSON array
-                        json_string = match.group(1)
-                        predicted_filters_with_reasoning = json.loads(json_string)
-                        # Validate basic structure of the expected output
-                        if isinstance(predicted_filters_with_reasoning, list) and \
-                           all(isinstance(item, dict) and 'filter' in item and isinstance(item.get('filter'), dict) and 'reasoning' in item for item in predicted_filters_with_reasoning):
+                        predicted_segments = json.loads(json_str)
+                    except json.JSONDecodeError as e:
+                        print(f"\nDebug - JSON decode error: {e}")
+                        continue
 
-                             print(f"Successfully extracted {len(predicted_filters_with_reasoning)} predicted filters from LLM response.")
-                             yield Response(
-                                chat_message=TextMessage(content=json.dumps({"status": "success", "predicted_filters": predicted_filters_with_reasoning}), source=self.name),
-                                inner_messages=[],
-                             )
-                        else:
-                             print("LLM response did not match expected JSON structure.")
-                             yield Response(
-                                chat_message=TextMessage(content=json.dumps({"status": "error", "message": "LLM response format incorrect, expected list of dictionaries with 'filter' and 'reasoning'."}), source=self.name),
-                                inner_messages=[],
-                             )
-                    except json.JSONDecodeError:
-                        print("Could not parse JSON from LLM response.")
-                        print(f"LLM response content was:\n{llm_response_content}") # Log response for debugging
-                        yield Response(
-                            chat_message=TextMessage(content=json.dumps({"status": "error", "message": "Could not parse JSON from LLM response."}), source=self.name),
-                            inner_messages=[],
-                        )
-                else:
-                    print("Could not find JSON array in LLM response.")
-                    print(f"LLM response content was:\n{llm_response_content}") # Log response for debugging
-                    yield Response(
-                        chat_message=TextMessage(content=json.dumps({"status": "error", "message": "Could not extract filter combinations (JSON array) from LLM response."}), source=self.name),
-                        inner_messages=[],
-                    )
-            except Exception as e:
-                 # Catch any other exceptions during the LLM call or response processing
-                 print(f"[LLM INVOKE ERROR] An unexpected error occurred during LLM invocation or initial processing: {e}")
-                 yield Response(
-                      chat_message=TextMessage(content=json.dumps({"status": "error", "message": f"LLM invocation or processing error: {e}"}), source=self.name),
-                      inner_messages=[]
-                 )
-        except Exception as e:
-            # Outer catch block for errors during Pinecone query or context building
-            print(f"[RAG ERROR] Error during vector database query or context building: {e}")
+                    # Validate segments and check for deals
+                    for segment in predicted_segments:
+                        if not isinstance(segment, dict) or "filter" not in segment:
+                            continue
+                            
+                        # Build SQL query to count deals
+                        where_condition = build_single_filter_condition(segment['filter'])
+                        conn = None
+                        cursor = None
+                        try:
+                            conn = psycopg2.connect(**DB_CONFIG)
+                            cursor = conn.cursor()
+                            
+                            query = f"""
+                                SELECT COUNT(*) as deal_count
+                                FROM dim_deals d
+                                JOIN dim_companies c ON d.company_id = c.company_id
+                                LEFT JOIN dim_contacts ct ON d.company_id = ct.company_id
+                                WHERE {where_condition}
+                            """
+                            cursor.execute(query)
+                            result = cursor.fetchone()
+                            deal_count = result[0] if result else 0
+                            
+                            if deal_count >= 5:
+                                valid_segments.append(segment)
+                                print(f"\nFound valid segment with {deal_count} deals:")
+                                print(json.dumps(segment, indent=2))
+                            else:
+                                failed_filters.append({
+                                    "filter": segment['filter'],
+                                    "deal_count": deal_count,
+                                    "reasoning": segment.get('reasoning', '')
+                                })
+                                print(f"\nFilter did not yield enough deals ({deal_count}):")
+                                print(json.dumps(segment['filter'], indent=2))
+                            
+                        except Exception as e:
+                            print(f"Error checking deals for segment: {e}")
+                        finally:
+                            if cursor:
+                                cursor.close()
+                            if conn:
+                                conn.close()
+
+                except Exception as e:
+                    print(f"Error in LLM processing: {e}")
+                    continue
+
+                retry_count += 1
+
+            if not valid_segments:
+                yield Response(
+                    chat_message=TextMessage(content=json.dumps({"status": "error", "message": "Could not find any segments with sufficient deals after multiple attempts."}), source=self.name),
+                    inner_messages=[]
+                )
+                return
+
+            # Return the valid segments
             yield Response(
-                chat_message=TextMessage(content=json.dumps({"status": "error", "message": f"Vector database query or context building error: {e}"}), source=self.name),
-                inner_messages=[],
+                chat_message=TextMessage(content=json.dumps({"predicted_filters": valid_segments}), source=self.name),
+                inner_messages=[]
+            )
+
+        except Exception as e:
+            print(f"Error in filter prediction agent: {e}")
+            yield Response(
+                chat_message=TextMessage(content=json.dumps({"status": "error", "message": str(e)}), source=self.name),
+                inner_messages=[]
             )
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
@@ -754,7 +843,19 @@ def answer_question_for_filter(filter_id: str, question: str, n_results: int = 1
             return "No relevant documents found for this filter."
 
         # Build context for LLM
-        context = "\n\n".join([match.id for match in matches])
+        context = "Context from relevant deals:\n\n"
+        for match in matches:
+            metadata = match.metadata
+            context += f"Deal: {metadata.get('deal_name', 'N/A')}\n"
+            context += f"  - Amount: ${float(metadata.get('amount', 0) or 0):,.2f}\n"
+            context += f"  - Stage: {metadata.get('dealstage', 'N/A')}\n"
+            context += f"  - Industry: {metadata.get('industry', 'N/A')}\n"
+            context += f"  - Country: {metadata.get('country', 'N/A')}\n"
+            context += f"  - Employee Size: {metadata.get('employee_bucket', 'N/A')}\n"
+            context += f"  - Job Title: {metadata.get('job_title', 'N/A')}\n"
+            context += f"  - Sales Cycle: {float(metadata.get('days_to_close', 0) or 0):.1f} days\n"
+            context += "\n"
+
         prompt = f"""
 You are an expert sales analyst. Use ONLY the following context (deals) to answer the user's question. If the answer is not in the context, say so.
 
@@ -762,6 +863,8 @@ Context:
 {context}
 
 Question: {question}
+
+Provide a detailed analysis based on the deal data above. Include specific numbers and patterns you observe.
 Answer as a helpful analyst:
 """
         # Use the same LLM as FilterPredictionAgent
@@ -794,7 +897,7 @@ class AnalysisAgent(BaseChatAgent):
         super().__init__(name=name, description="Agent that analyzes segment performance and calculates revenue velocity")
         self._llm = None
         openai_api_key = os.getenv("OPENAI_API_KEY")
-
+        
         if openai_api_key:
             print(f"Attempting to initialize OpenAI model '{openai_model}'...")
             try:
@@ -845,19 +948,6 @@ class AnalysisAgent(BaseChatAgent):
             for segment in segments_data:
                 # If this is an initial segment (has filter and reasoning but no metrics)
                 if "filter" in segment and "reasoning" in segment:
-                    analyzed_results.append({
-                        "filter": segment["filter"],
-                        "reasoning": segment["reasoning"],
-                        "measured_metrics": {
-                            "total_deals": 0,
-                            "won_deals": 0,
-                            "avg_amount": 0,
-                            "avg_days_to_close": 0,
-                            "revenue_velocity": 0
-                        }
-                    })
-                # If this is a segment with metrics
-                elif "metrics" in segment:
                     metrics = segment.get("metrics", {})
                     total = metrics.get("total_deals", 0)
                     won = metrics.get("won_deals", 0)
@@ -865,10 +955,10 @@ class AnalysisAgent(BaseChatAgent):
                     days = metrics.get("avg_days_to_close", 0)
                     
                     revenue_velocity = self.calculate_revenue_velocity(total, won, amount, days)
-                    
+
                     analyzed_results.append({
-                        "filter": segment.get("filter", {}),
-                        "reasoning": segment.get("reasoning", ""),
+                        "filter": segment["filter"],
+                        "reasoning": segment["reasoning"],
                         "measured_metrics": {
                             "total_deals": total,
                             "won_deals": won,
@@ -912,18 +1002,6 @@ Provide a concise analysis focusing on actionable insights.
                 "results": analyzed_results
             }
 
-            # Add open deals to each segment in the results
-            for segment in analyzed_results:
-                segment_key = json.dumps(segment["filter"], sort_keys=True)
-                if segment_key in relevant_open_deals_by_segment:
-                    segment["top_relevant_open_deals"] = relevant_open_deals_by_segment[segment_key]
-                else:
-                    segment["top_relevant_open_deals"] = []
-
-            # Print debug information
-            print("\nDebug - Final Response Structure:")
-            print(json.dumps(final_response, indent=2))
-
             yield Response(
                 chat_message=TextMessage(content=json.dumps(final_response), source=self.name),
                 inner_messages=[]
@@ -949,258 +1027,235 @@ Provide a concise analysis focusing on actionable insights.
 
 # --- Main Workflow Orchestration ---
 async def predict_measure_analyze_segments():
-    print("Starting Predict, Measure, and Analyze Revenue Velocity workflow...")
+    """Main workflow function that predicts, measures, and analyzes segments."""
+    try:
+        # Initialize agents
+        filter_agent = FilterPredictionAgent(name="FilterPredictionAgent")
+        analysis_agent = AnalysisAgent(name="AnalysisAgent", openai_model="gpt-4o", ollama_model="gemma3:1b")
 
-    # Instantiate agents
-    filter_agent = FilterPredictionAgent(name="FilterPredictionAgent", openai_model="gpt-4o", ollama_model="gemma3:1b")
-    analysis_agent = AnalysisAgent(name="AnalysisAgent", openai_model="gpt-4o", ollama_model="gemma3:1b")
-
-    max_attempts = 10
-    attempt = 0
-    found_valid_segment = False
-    feedback_message = None
-    final_result = None
-    predicted_filters_with_reasoning = []
-    tested_segments_results = []
-
-    while attempt < max_attempts and not found_valid_segment:
-        attempt += 1
-        print(f"\n--- Attempt {attempt} to find valid segments ---")
-        # Step 1: Use LLM to predict promising filter combinations
-        if feedback_message:
-            user_prompt = f"Predict segments with high revenue velocity. Previous attempt feedback: {feedback_message}"
-        else:
-            user_prompt = "Predict segments with high revenue velocity."
+        # Step 1: Get predicted segments from FilterPredictionAgent
+        print("\n--- Step 1: Predicting Segments ---")
         filter_response = await filter_agent.on_messages(
-            [UserMessage(content=user_prompt, source="user")],
+            [UserMessage(content="Predict segments with high revenue velocity.", source="user")],
             CancellationToken()
         )
 
         if not filter_response or not filter_response.chat_message:
-            print(f"No valid response received from {filter_agent.name}.")
-            break # Exit the loop
+            return {"status": "error", "message": "No response from filter prediction agent"}
 
         try:
-            filter_data = json.loads(filter_response.chat_message.content)
-            if filter_data.get("status") != "success":
-                print(f"Error from {filter_agent.name}: {filter_data.get('message')}")
-                break # Exit the loop
-            predicted_filters_with_reasoning = filter_data.get("predicted_filters", [])
-            print(f"Received {len(predicted_filters_with_reasoning)} predicted filter combinations.")
-            if not predicted_filters_with_reasoning:
-                print("No filter combinations were predicted. Aborting workflow.")
-                break # Exit the loop
-        except json.JSONDecodeError:
-            print("Error decoding predicted filters from LLM response.")
-            break # Exit the loop
+            # Parse the response and extract predicted filters
+            response_content = filter_response.chat_message.content
+            print("\nDebug - Raw Filter Response:")
+            print(response_content)
+            
+            # First try to parse the entire response as JSON
+            try:
+                response_json = json.loads(response_content)
+                if isinstance(response_json, dict) and "predicted_filters" in response_json:
+                    predicted_segments = response_json["predicted_filters"]
+                else:
+                    predicted_segments = response_json
+            except json.JSONDecodeError:
+                # If that fails, try to extract JSON array from the response
+                import re
+                json_matches = list(re.finditer(r'\[\s*\{.*\}\s*\]', response_content, re.DOTALL))
+                if not json_matches:
+                    print("Debug - No JSON array found in response")
+                    return {"status": "error", "message": "No valid JSON array found in response"}
+                
+                # Use the last match (most recent complete response)
+                json_str = json_matches[-1].group(0)
+                print("\nDebug - Extracted JSON string:")
+                print(json_str)
+                
+                try:
+                    predicted_segments = json.loads(json_str)
+                except json.JSONDecodeError as e:
+                    print(f"\nDebug - JSON decode error: {e}")
+                    return {"status": "error", "message": f"Error decoding JSON: {str(e)}"}
 
-        # Step 2: For each predicted filter combination, query the database to get measured metrics
-        tested_segments_results = []
-        print("\n--- Measuring Performance of Predicted Segments ---")
-        for idx, segment_prediction in enumerate(predicted_filters_with_reasoning, start=1):
-            filter_combo = segment_prediction.get("filter", {})
-            prediction_reasoning = segment_prediction.get("reasoning", "No reasoning provided.")
+            if not isinstance(predicted_segments, list):
+                print("\nDebug - Parsed data is not a list")
+                return {"status": "error", "message": "Expected a list of segments"}
 
-            if not filter_combo or not any(filter_combo.values()):
-                print(f"\nSkipping predicted segment {idx}: Empty filter combination.")
-                tested_segments_results.append({
-                    "filter": filter_combo,
-                    "reasoning": prediction_reasoning,
-                    "db_status": "skipped",
-                    "db_message": "Empty filter combination predicted.",
-                    "metrics": None
-                })
+            print(f"\nDebug - Number of segments before validation: {len(predicted_segments)}")
+
+            # Validate and clean up segments
+            valid_segments = []
+            for i, segment in enumerate(predicted_segments):
+                print(f"\nDebug - Validating segment {i+1}:")
+                print(json.dumps(segment, indent=2))
+                
+                if not isinstance(segment, dict):
+                    print(f"Debug - Segment {i+1} is not a dictionary")
+                    continue
+                    
+                if "filter" not in segment:
+                    print(f"Debug - Segment {i+1} missing 'filter' field")
+                    continue
+                    
+                filter_data = segment["filter"]
+                if not isinstance(filter_data, dict):
+                    print(f"Debug - Filter data in segment {i+1} is not a dictionary")
+                    continue
+
+                # Create a new normalized filter dictionary
+                normalized_filter = {}
+                
+                # Normalize field names and ensure all values are lists
+                field_mappings = {
+                    "countries": "country",
+                    "employee_buckets": "employee_bucket",
+                    "industry": "industry",
+                    "job_title": "job_title",
+                    "hs_analytics_source": "hs_analytics_source"
+                }
+                
+                for old_key, new_key in field_mappings.items():
+                    if old_key in filter_data:
+                        value = filter_data[old_key]
+                        if isinstance(value, list):
+                            normalized_filter[new_key] = value
+                        else:
+                            normalized_filter[new_key] = [value] if value else []
+                
+                # Create a new segment with normalized filter
+                valid_segment = {
+                    "filter": normalized_filter,
+                    "reasoning": segment.get("reasoning", "")
+                }
+                
+                valid_segments.append(valid_segment)
+                print(f"Debug - Segment {i+1} is valid after normalization:")
+                print(json.dumps(valid_segment, indent=2))
+
+            predicted_segments = valid_segments
+            print(f"\nSuccessfully extracted {len(predicted_segments)} valid predicted filters from LLM response.")
+            print("\nDebug - Final Valid Segments:")
+            print(json.dumps(predicted_segments, indent=2))
+
+        except Exception as e:
+            print(f"Error parsing filter prediction response: {e}")
+            return {"status": "error", "message": f"Error parsing filter prediction response: {str(e)}"}
+
+        if not predicted_segments:
+            return {"status": "error", "message": "No valid segments found in response"}
+
+        # Step 2: Measure performance for each predicted segment
+        print("\n--- Step 2: Measuring Segment Performance ---")
+        measured_segments = []
+        for i, segment in enumerate(predicted_segments):
+            try:
+                print(f"\nTesting predicted segment {i+1}:")
+                print(json.dumps(segment, indent=2))
+                
+                # Build SQL query with LIMIT for faster testing
+                where_condition = build_single_filter_condition(segment['filter'])
+                conn = None
+                cursor = None
+                try:
+                    conn = psycopg2.connect(**DB_CONFIG)
+                    cursor = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+                    
+                    # Add LIMIT to the query for faster testing
+                    query = f"""
+                        SELECT
+                            COUNT(*) as total_deals,
+                            COUNT(CASE WHEN d.dealstage = 'closedwon' THEN 1 END) as won_deals,
+                            AVG(d.amount) as avg_amount,
+                            AVG(d.days_to_close) as avg_days_to_close
+                        FROM dim_deals d
+                        JOIN dim_companies c ON d.company_id = c.company_id
+                        LEFT JOIN dim_contacts ct ON d.company_id = ct.company_id
+                        WHERE {where_condition}
+                        AND d.dealstage IN ('closedwon', 'closedlost')
+                    """
+                    print("\nDebug - Executing query:")
+                    print(query)
+                    
+                    cursor.execute(query)
+                    metrics = cursor.fetchone()
+                    
+                    if metrics:
+                        segment['metrics'] = {
+                            'total_deals': metrics['total_deals'] or 0,
+                            'won_deals': metrics['won_deals'] or 0,
+                            'avg_amount': float(metrics['avg_amount'] or 0),
+                            'avg_days_to_close': float(metrics['avg_days_to_close'] or 0)
+                        }
+                        measured_segments.append(segment)
+                        print(f"\nDebug - Added metrics for segment {i+1}:")
+                        print(json.dumps(segment['metrics'], indent=2))
+                    else:
+                        print(f"No metrics found for segment {i+1}")
+                        
+                except Exception as e:
+                    print(f"Error measuring segment {i+1}: {e}")
+                finally:
+                    if cursor:
+                        cursor.close()
+                    if conn:
+                        conn.close()
+            except Exception as e:
+                print(f"Error processing segment {i+1}: {e}")
                 continue
 
-            print(f"\nTesting predicted segment {idx}: Filter={filter_combo} (Reasoning: {prediction_reasoning[:100]}...)")
-
-            db_request_message = UserMessage(content=json.dumps(filter_combo), source=filter_agent.name)
-            db_response = await filter_agent.on_messages([db_request_message], CancellationToken())
-
-            if db_response and db_response.chat_message:
-                try:
-                    db_result = json.loads(db_response.chat_message.content)
-                    tested_segments_results.append({
-                        "filter": filter_combo,
-                        "reasoning": prediction_reasoning,
-                        "db_status": db_result.get("status"),
-                        "db_message": db_result.get("message"),
-                        "metrics": db_result.get("metrics")
-                    })
-                    print(f"  DB Query Status: {db_result.get('status')}")
-                    if db_result.get('status') == 'success' and db_result.get('metrics'):
-                        metrics = db_result.get('metrics')
-                        total = metrics.get('total_deals', 0)
-                        won = metrics.get('won_deals', 0)
-                        amount = metrics.get('avg_amount', 0)
-                        days = metrics.get('avg_days_to_close', 0)
-                        measured_rv = analysis_agent.calculate_revenue_velocity(total, won, amount, days)
-                        print(f"  Measured Metrics: Total Deals={total}, Won Deals={won}, ACV=${amount:.2f}, Sales Cycle={days:.2f} days, Measured RV={measured_rv:.2f}")
-                except json.JSONDecodeError:
-                    print(f"  Error decoding DB response for segment {idx}.")
-                    tested_segments_results.append({
-                        "filter": filter_combo,
-                        "reasoning": prediction_reasoning,
-                        "db_status": "error",
-                        "db_message": "Invalid JSON response from FilterPredictionAgent",
-                        "metrics": None
-                    })
-            else:
-                print(f"No valid response received from {filter_agent.name} for segment {idx}.")
-                tested_segments_results.append({
-                    "filter": filter_combo,
-                    "reasoning": prediction_reasoning,
-                    "db_status": "error",
-                    "db_message": "No valid response from FilterPredictionAgent",
-                    "metrics": None
-                })
-
-        # Check if any segment has measured_metrics (i.e., metrics is not None)
-        found_valid_segment = any(seg.get("metrics") for seg in tested_segments_results)
-        if not found_valid_segment:
-            # Prepare feedback for the LLM
-            failed_filters = [seg["filter"] for seg in tested_segments_results]
-            feedback_message = f"None of the predicted segments had at least 5 deals. Previous filters tried: {json.dumps(failed_filters)}. Please suggest broader or alternative segments."
+        if not measured_segments:
             print("No valid segments found. Will prompt LLM again with feedback.")
-        else:
-            print("At least one valid segment found with measured metrics.")
+            return {"status": "error", "message": "No valid segments found"}
 
-    # Step 3: Send tested segments results to Analysis Agent for final analysis and comparison
-    if tested_segments_results:
-        analyzable_results = [res for res in tested_segments_results if res.get("db_status") == "success" and res.get("metrics")]
-        if analyzable_results:
-            print(f"\n--- Analyzing Measured Performance ---")
-            print(f"Sending results of {len(analyzable_results)} tested segments to AnalysisAgent for final analysis...")
+        # Step 3: Analyze measured performance
+        print("\n--- Analyzing Measured Performance ---")
+        print(f"Sending results of {len(measured_segments)} tested segments to AnalysisAgent for final analysis...")
+        
+        analysis_response = await analysis_agent.on_messages(
+            [UserMessage(content=json.dumps(measured_segments), source="user")],
+            CancellationToken()
+        )
+
+        if not analysis_response or not analysis_response.chat_message:
+            return {"status": "error", "message": "No response from analysis agent"}
+
+        try:
+            final_analysis = json.loads(analysis_response.chat_message.content)
+            print("\nReceived final analysis from AnalysisAgent:")
+            print("\n--- Final Analysis Result ---")
+            print(json.dumps(final_analysis, indent=2))
+        except json.JSONDecodeError as e:
+            print(f"Error decoding analysis response: {e}")
+            return {"status": "error", "message": "Invalid response from analysis agent"}
+
+        # Step 4: Identify relevant open deals
+        print("\n--- Identifying Relevant Open Deals ---")
+        print("Fetching open deals...")
+        open_deals = await fetch_open_deals(DB_CONFIG)
+        print(f"Fetched {len(open_deals)} open deals.")
+
+        # Score and match open deals to segments
+        print(f"Scoring {len(open_deals)} open deals against {len(measured_segments)} predicted segments...")
+        relevant_open_deals_by_segment = {}
+        for segment in measured_segments:
+            segment_key = json.dumps(segment['filter'], sort_keys=True)
+            scored_deals = []
             
-            # Format the data for analysis
-            formatted_results = []
-            for result in analyzable_results:
-                formatted_result = {
-                    "filter": result.get("filter", {}),
-                    "reasoning": result.get("reasoning", ""),
-                    "metrics": result.get("metrics", {})
-                }
-                formatted_results.append(formatted_result)
+            # Limit the number of deals to process for faster testing
+            for deal in open_deals[:100]:  # Process only first 100 deals
+                score = calculate_relevance_score(deal, segment['filter'])
+                if score > 0:
+                    scored_deals.append((deal, score))
             
-            analysis_request_message = UserMessage(content=json.dumps(formatted_results), source=filter_agent.name)
-            analysis_response = await analysis_agent.on_messages([analysis_request_message], CancellationToken())
+            # Sort by score and take top 3
+            scored_deals.sort(key=lambda x: x[1], reverse=True)
+            relevant_open_deals_by_segment[segment_key] = [deal for deal, _ in scored_deals[:3]]
 
-            if analysis_response and analysis_response.chat_message:
-                final_result_json = analysis_response.chat_message.content
-                print(f"Received final analysis from {analysis_agent.name}:")
-                try:
-                    final_result = json.loads(final_result_json)
-                    # Print the full analysis result
-                    print("--- Final Analysis Result ---")
-                    print(json.dumps(final_result, indent=2))
+        # Add open deals to final analysis
+        final_analysis['relevant_open_deals'] = relevant_open_deals_by_segment
+        return final_analysis
 
-                    # Extract the top predicted segments (which are sorted by RV in analyzed_results)
-                    # The 'results' key in the final_result already contains the sorted analyzed_results
-                    top_segments = final_result.get("results", [])
-
-                    # Define output filename
-                    output_filename = "top_predicted_segments.json"
-
-                    # Write the top segments to a JSON file
-                    if top_segments:
-                        with open(output_filename, 'w') as f:
-                            json.dump(top_segments, f, indent=2)
-                        print(f"Successfully saved top predicted segments to {output_filename}")
-                    else:
-                        print("No analyzable segments with measured data to save.")
-
-                except json.JSONDecodeError:
-                    print("Error decoding final JSON response from Analysis agent.")
-                    print(final_result_json)
-            else:
-                print(f"No valid response received from {analysis_agent.name}.")
-        else:
-            print("\nNo segments with measured data met criteria for analysis, or no segments were predicted.")
-
-    # --- Step 4: Identify and Score Relevant Open Deals ---
-    print("\n--- Identifying Relevant Open Deals ---")
-    # Fetch all open deals
-    open_deals = await fetch_open_deals(DB_CONFIG)
-    relevant_open_deals_by_segment = {}
-
-    if open_deals and predicted_filters_with_reasoning:
-        print(f"Scoring {len(open_deals)} open deals against {len(predicted_filters_with_reasoning)} predicted segments...")
-        for segment_prediction in predicted_filters_with_reasoning:
-            filter_combo = segment_prediction.get("filter", {})
-            segment_key = json.dumps(filter_combo, sort_keys=True) # Use sorted JSON as a unique key for the segment
-            relevant_deals_for_segment = []
-
-            print(f"\n-- Scoring open deals for segment: {filter_combo} --")
-            for deal in open_deals:
-                score = calculate_relevance_score(deal, filter_combo)
-                # Log the score for debugging
-                # print(f"  Deal ID: {deal.get('deal_id')}, Score: {score:.2f}")
-                if score > 0: # Only include deals with a non-zero score (at least one match)
-                    relevant_deals_for_segment.append({
-                        "deal": deal, # Include full deal data
-                        "relevance_score": score
-                    })
-
-            # Sort relevant deals by score (highest first)
-            relevant_deals_for_segment.sort(key=lambda x: x['relevance_score'], reverse=True)
-
-            # Store top N relevant deals for this segment (e.g., top 3)
-            top_n = 3 # Limit to top 3 relevant deals as requested
-            relevant_open_deals_by_segment[segment_key] = relevant_deals_for_segment[:top_n]
-            print(f"Found {len(relevant_deals_for_segment)} open deals matching this segment filter (score > 0). Top {min(top_n, len(relevant_deals_for_segment))} relevant deals saved.")
-    else:
-        print("No open deals fetched or no segments predicted to score against.")
-
-    # --- Combine Results and Output ---
-    # Start building the final output structure, based on the analysis result or a default structure
-    final_output_structure = final_result if final_result is not None else {"status": "success", "analysis": "Workflow completed, but analysis step may have been skipped.", "results": []}
-
-    # Iterate through the segments in the results and add relevant open deals
-    processed_segments_for_output = []
-    for segment_data in final_output_structure.get("results", []):
-        # Create a key for lookup in relevant_open_deals_by_segment
-        filter_combo = segment_data.get("filter", {})
-        segment_key = json.dumps(filter_combo, sort_keys=True)
-
-        # Find the relevant open deals for this segment
-        relevant_deals = relevant_open_deals_by_segment.get(segment_key, [])
-
-        # Add the top relevant open deals to the segment data
-        # We will simplify the deal objects to just include key info for JSON serialization
-        top_relevant_open_deals_simplified = [{
-            "deal_id": d['deal'].get('deal_id'),
-            "deal_name": d['deal'].get('deal_name'),
-            "dealstage": d['deal'].get('dealstage'),
-            "amount": d['deal'].get('amount'),
-            "relevance_score": d['relevance_score']
-        } for d in relevant_deals]
-
-        segment_data["top_relevant_open_deals"] = top_relevant_open_deals_simplified
-
-        # Add top-level revenue_velocity field
-        measured_metrics = segment_data.get("measured_metrics")
-        if measured_metrics and isinstance(measured_metrics, dict):
-            segment_data["revenue_velocity"] = measured_metrics.get("revenue_velocity")
-        else:
-            segment_data["revenue_velocity"] = None
-
-        processed_segments_for_output.append(segment_data)
-
-    # Replace the original results with the processed ones
-    final_output_structure["results"] = processed_segments_for_output
-
-    # --- Final Output ---
-    print("\n--- Final Combined Output ---")
-    # The structure should now be JSON serializable since we simplified the deal objects
-    try:
-        print(json.dumps(final_output_structure, indent=2))
-        return final_output_structure
-    except TypeError as e:
-        # This catch is a fallback, should not be hit if simplification worked
-        print(f"Error serializing final output structure: {e}")
-        print("Final output structure:", final_output_structure)
-
-    print("\nWorkflow finished.")
+    except Exception as e:
+        print(f"Error in predict_measure_analyze_segments: {e}")
+        return {"status": "error", "message": str(e)}
 
 # --- TEST BLOCK ---
 if __name__ == "__main__":
