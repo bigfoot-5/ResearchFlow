@@ -31,7 +31,8 @@ langchain-community
 langchain
 chromadb
 sentence-transformers>=2.2.0
-pinecone-client>=3.0.0
+# pinecone-client>=3.0.0
+pinecone
 langchain-pinecone>=0.0.3
 
 # === Utilities ===
