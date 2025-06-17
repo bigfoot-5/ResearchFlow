@@ -2,7 +2,7 @@ version: 2
 
 sources:
   - name: hubspot_data
-    database: cognition_db
+    database: neondb
     schema: public
     tables:
       - name: companies

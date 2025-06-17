@@ -56,10 +56,10 @@ index = pc.Index(PINECONE_INDEX_NAME)
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://cognition_user:cognition_password@localhost:5432/cognition_db")
 DB_CONFIG = {
     "dbname": os.getenv("DB_NAME", ""),
-    "user": os.getenv("DB_USER", "cognition_user"),
-    "password": os.getenv("DB_PASSWORD", "cognition_password"),
-    "host": os.getenv("DB_HOST", "localhost"),
-    "port": os.getenv("DB_PORT", "5432"),
+    "user": os.getenv("DB_USER", ""),
+    "password": os.getenv("DB_PASSWORD", ""),
+    "host": os.getenv("DB_HOST", ""),
+    "port": os.getenv("DB_PORT", ""),
 }
 import psycopg2
 import psycopg2.extras
